@@ -9,10 +9,11 @@
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint",
-    "check": "deno check main.ts src/ tests/",
+    "check": "deno check main.ts src/ tests/ web/src/ web/vite.config.ts",
     "test": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys --ignore=tests/online tests/",
     "test:online": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys tests/online/",
-    "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys main.ts"
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys main.ts",
+    "build:web": "deno run -A npm:vite@8.3.5 build --config web/vite.config.ts"
   },
   "imports": {
     "@pathfinder/pathfinder": "jsr:@pathfinder/pathfinder@0.2.4",

@@ -17,12 +17,22 @@ deno task fmt:check
 deno task lint
 deno task check
 deno task test
+deno task build:web
 ```
 
 `test` is the offline suite and explicitly excludes `tests/online/`.
 `test:online` is reserved for later relay tests; M0 does not create or contact
 an online account. `start` currently loads the configuration placeholder and
 exits.
+
+The offline suite proves RPC restart persistence, MCP
+handshake/list/call/session cleanup through Pathfinder, SQLite disk persistence,
+and an actual Solid 2 native build followed by a hit-tested Chromium pointer
+click from `0` to `1`. Browser evidence is saved in `artifacts/m0/`. The web
+test uses a non-loopback HTTP hostname and asserts `isSecureContext === false`.
+Chromium's test-only resolver rule maps that hostname to the development guest's
+LAN address; the Deno MCP client uses the LAN IP directly because browser
+resolver flags cannot affect Deno.
 
 ## Architecture
 
