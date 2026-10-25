@@ -9,8 +9,8 @@
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint",
-    "check": "deno check main.ts",
-    "test": "deno test --permit-no-files --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys --ignore=tests/online",
+    "check": "deno check main.ts src/ tests/",
+    "test": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys --ignore=tests/online tests/",
     "test:online": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys tests/online/",
     "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys main.ts"
   },
