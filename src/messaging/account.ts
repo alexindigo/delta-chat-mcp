@@ -71,7 +71,8 @@ export class AccountService {
         // unconfigured identity; only core decides whether setup is complete.
         const id = ids[0] ?? await rpc.addAccount();
         await rpc.setConfig(id, "displayname", input.displayName.trim());
-        await rpc.addTransportFromQr(id, `DCACCOUNT:${input.relay.trim()}`);
+        const relay = input.relay.trim().replace(/^DCACCOUNT:/i, "");
+        await rpc.addTransportFromQr(id, `DCACCOUNT:${relay}`);
         await rpc.startIo(id);
       });
       this.events.emit({ type: "account" });

@@ -144,6 +144,21 @@ Deno.test("consumer read receipts include only returned incoming messages, never
   assertEquals(app.ids, [900, 100, 700]);
 });
 
+Deno.test("browser presentation receipts are chat-scoped and mark only selected incoming messages", async () => {
+  const app = setup([900, 100, 700]);
+  app.messages.set(100, raw(100, 1));
+  await app.chats.messages(99);
+  assertEquals(app.seen, []);
+  await app.chats.markPresented(99, [100, 900]);
+  assertEquals(app.seen, [900]);
+  await assertRejects(
+    () => app.chats.markPresented(98, [700]),
+    Error,
+    "displayed chat",
+  );
+  assertEquals(app.seen, [900]);
+});
+
 Deno.test("bounded consumer wait marks only its returned page and cancellation releases the shared listener", async () => {
   const app = setup(Array.from({ length: 105 }, (_, i) => i + 100));
   const result = await app.chats.waitAndRead(

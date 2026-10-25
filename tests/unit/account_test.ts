@@ -81,3 +81,25 @@ Deno.test("concurrent identity requests cannot create two accounts", async () =>
     1,
   );
 });
+
+Deno.test("relay domain and full DCACCOUNT URI share one normalization boundary", async () => {
+  for (
+    const relay of [
+      "relay.example",
+      " DCACCOUNT:relay.example ",
+      "dcaccount:https://relay.example/new",
+    ]
+  ) {
+    const { core, account } = setup();
+    await account.create({ relay, displayName: "Fixture" });
+    assertEquals(
+      core.calls.find((call) => call.method === "addTransportFromQr")?.args,
+      [
+        7,
+        relay.toLowerCase().includes("https:")
+          ? "DCACCOUNT:https://relay.example/new"
+          : "DCACCOUNT:relay.example",
+      ],
+    );
+  }
+});

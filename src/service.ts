@@ -18,8 +18,10 @@ import { AuthState } from "./auth/state.ts";
 import { ApiKeys } from "./auth/api-keys.ts";
 import { McpSessions } from "./mcp/sessions.ts";
 import { createMcpServer } from "./mcp/server.ts";
+import { EventStreams } from "./http/event-streams.ts";
 
 export interface ServiceBag {
+  streams?: EventStreams;
   mcp?: Pick<McpSessions, "handleRequest">;
   auth: AuthState;
   apiKeys: ApiKeys;
@@ -55,6 +57,7 @@ export async function startService(
   let chats: ChatsService | undefined;
   let db: ReturnType<typeof openStateDb> | undefined;
   let mcp: McpSessions | undefined;
+  let streams: EventStreams | undefined;
   const http = serveHttp(cfg.listen, (request) => {
     if (closing || !handler) {
       return Response.json({ error: "Service unavailable" }, { status: 503 });
@@ -74,6 +77,7 @@ export async function startService(
     closing = true;
     if (!shutdown) {
       shutdown = (async () => {
+        streams?.close();
         const transports = await Promise.allSettled([mcp?.close()]);
         chats?.close();
         const results = await Promise.allSettled([
@@ -121,6 +125,7 @@ export async function startService(
       (values) => log.registerSecrets(values),
     );
     const events = new ChangeHub(() => log.event("warn", "listener_failed"));
+    streams = new EventStreams(events, auth);
     core = new CoreProcess({
       accountsDir: join(cfg.data.dir, "accounts"),
       onEvent: (_account, event) => publishCoreEvent(events, event),
@@ -135,6 +140,7 @@ export async function startService(
     await account.status();
     chats = new ChatsService(core, account, events, cfg.mcp.waitMaxSeconds);
     const app: ServiceBag = {
+      streams,
       auth,
       apiKeys,
       mcp,

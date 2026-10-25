@@ -36,6 +36,15 @@ export class ContactsService {
     const id = await this.account.id();
     await this.core.use((rpc) => rpc.acceptChat(id, chatId));
   }
+  async openChat(contactId: number) {
+    requireId(contactId);
+    const id = await this.account.id();
+    return {
+      chatId: await this.core.use((rpc) =>
+        rpc.createChatByContactId(id, contactId)
+      ),
+    };
+  }
   async block(chatId: number): Promise<void> {
     requireId(chatId);
     const id = await this.account.id();

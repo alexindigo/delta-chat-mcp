@@ -133,6 +133,22 @@ export class ChatsService {
     const id = await this.account.id();
     await this.core.use((rpc) => rpc.markseenMsgs(id, messages));
   }
+  async markPresented(chatId: number, ids: readonly number[]): Promise<void> {
+    requireId(chatId);
+    const selected = requireIds(ids);
+    if (!selected.length) return;
+    const accountId = await this.account.id();
+    await this.core.use(async (rpc) => {
+      const loaded = await loadMessages(rpc, accountId, selected);
+      if ([...loaded.values()].some((message) => message.chatId !== chatId)) {
+        throw new Error("Messages must belong to the displayed chat");
+      }
+      const incoming = [...loaded.values()].filter((message) =>
+        !toMessage(message).fromSelf
+      ).map((message) => message.id);
+      if (incoming.length) await rpc.markseenMsgs(accountId, incoming);
+    });
+  }
   async waitAndRead(
     chatId: number,
     afterId: number,
