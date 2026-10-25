@@ -3,38 +3,56 @@ import type { RawClient } from "@deltachat/jsonrpc-client";
 import type { DcEvent } from "@deltachat/jsonrpc-client";
 import type { ChangeHub } from "../events.ts";
 
-/** Only the core boundary knows upstream types. Adapters receive services. */
-export type CoreRpc = Pick<
-  RawClient,
-  | "getSystemInfo"
-  | "getAllAccountIds"
-  | "addAccount"
-  | "isConfigured"
-  | "setConfig"
-  | "getConfig"
-  | "addTransportFromQr"
-  | "startIo"
-  | "getChatSecurejoinQrCode"
-  | "createQrSvg"
-  | "getConnectivity"
-  | "getContacts"
-  | "checkQr"
-  | "secureJoin"
-  | "acceptChat"
-  | "blockChat"
-  | "createGroupChat"
-  | "addContactToChat"
-  | "getChatlistEntries"
-  | "getChatlistItemsByEntries"
-  | "getFullChatById"
-  | "getMessageIds"
-  | "getMessage"
-  | "getMessages"
-  | "markseenMsgs"
-  | "createChatByContactId"
-  | "miscSendTextMessage"
-  | "deleteMessages"
->;
+/** One explicit allowlist defines both the runtime and typed RPC boundary. */
+const methods = [
+  "getSystemInfo",
+  "getAllAccountIds",
+  "addAccount",
+  "isConfigured",
+  "setConfig",
+  "addTransportFromQr",
+  "startIo",
+  "getChatSecurejoinQrCode",
+  "createQrSvg",
+  "getConnectivity",
+  "getContacts",
+  "checkQr",
+  "secureJoin",
+  "acceptChat",
+  "blockChat",
+  "createGroupChat",
+  "addContactToChat",
+  "getChatlistEntries",
+  "getChatlistItemsByEntries",
+  "getFullChatById",
+  "getMessageIds",
+  "getMessage",
+  "getMessages",
+  "markseenMsgs",
+  "createChatByContactId",
+  "miscSendTextMessage",
+  "deleteMessages",
+] as const;
+export type CoreRpc = Pick<RawClient, (typeof methods)[number]> & {
+  getTransportAddresses(accountId: number): Promise<string[]>;
+  getConfig(accountId: number, key: "displayname"): Promise<string | null>;
+};
+export function createCoreFacade(raw: RawClient): CoreRpc {
+  const operations = Object.fromEntries(
+    methods.map((name) => [name, raw[name].bind(raw)]),
+  );
+  return Object.freeze({
+    ...operations,
+    getTransportAddresses: async (accountId: number) =>
+      (await raw.listTransports(accountId)).map((transport) => transport.addr),
+    getConfig: (accountId: number, key: "displayname") => {
+      if (key !== "displayname") {
+        throw new Error("Unsupported profile configuration read");
+      }
+      return raw.getConfig(accountId, key);
+    },
+  }) as CoreRpc;
+}
 export type CoreEvent = DcEvent;
 export type CoreMessage = Awaited<ReturnType<CoreRpc["getMessage"]>>;
 export type CoreContact = Awaited<ReturnType<CoreRpc["getContacts"]>>[number];

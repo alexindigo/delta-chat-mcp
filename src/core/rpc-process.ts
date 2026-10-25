@@ -46,6 +46,9 @@ export async function startRpcProcess(accountsDir: string) {
   return {
     getSystemInfo: () => client.rpc.getSystemInfo(),
     addAccount: () => client.rpc.addAccount(),
+    /** Offline fixture preparation only; the production owner exposes no such operation. */
+    addPseudoTransport: (id: number, address: string) =>
+      client.rpc.addPseudoTransport(id, address),
     isConfigured: (id: number) => client.rpc.isConfigured(id),
     getAllAccountIds: () => client.rpc.getAllAccountIds(),
     close,

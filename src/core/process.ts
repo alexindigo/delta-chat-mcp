@@ -3,7 +3,7 @@ import { StdioDeltaChat } from "@deltachat/jsonrpc-client";
 import { getRPCServerPath } from "@deltachat/stdio-rpc-server";
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import type { CoreClient, CoreEvent, CoreRpc } from "./client.ts";
-import { CoreUnavailable } from "./client.ts";
+import { CoreUnavailable, createCoreFacade } from "./client.ts";
 
 export type CoreState = "ready" | "restarting" | "stopped";
 interface Options {
@@ -91,7 +91,7 @@ export class CoreProcess implements CoreClient {
       return Promise.reject(new CoreUnavailable());
     }
     return bounded(
-      Promise.resolve().then(() => call(generation.rpc)),
+      Promise.resolve().then(() => call(createCoreFacade(generation.rpc))),
       generation.lost.signal,
       120000,
     );
