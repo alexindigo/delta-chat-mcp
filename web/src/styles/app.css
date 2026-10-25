@@ -754,6 +754,16 @@ textarea {
 .conversation-empty {
   padding: 24px;
 }
+.connection-status {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  font-size: var(--text-small);
+}
+.connection-status a {
+  text-decoration: none;
+  color: var(--quiet);
+}
 @media (max-width: 900px) {
   .invite-layout {
     grid-template-columns: minmax(0, 1fr);

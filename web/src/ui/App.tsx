@@ -11,6 +11,7 @@ import { KeysScreen } from "./KeysScreen.tsx";
 import { IdentityScreen } from "./IdentityScreen.tsx";
 import { ContactsScreen } from "./ContactsScreen.tsx";
 import { ChatScreen } from "./ChatScreen.tsx";
+import { StatusScreen } from "./StatusScreen.tsx";
 import type { MessagingState } from "../messaging.ts";
 export function App(
   props: {
@@ -84,6 +85,7 @@ export function App(
                     { id: "identity", href: "/identity", label: "Identity" },
                     { id: "contacts", href: "/contacts", label: "Contacts" },
                     { id: "chats", href: "/chats", label: "Chats" },
+                    { id: "status", href: "/status", label: "Status" },
                   ]}
                 >
                   {(item) => (
@@ -99,6 +101,9 @@ export function App(
                 </For>
               </nav>
               <main class="working-sheet">
+                <div class="connection-status" aria-live="polite">
+                  <a href="/status">{props.messaging.connection}</a>
+                </div>
                 <Show when={props.logoutConfirm}>
                   <section
                     class="departure-confirm"
@@ -161,22 +166,10 @@ export function App(
                             <Show
                               when={props.screen === "chats"}
                               fallback={
-                                <section class="future-screen">
-                                  <h1>
-                                    {props.screen === "identity"
-                                      ? "Relay identity"
-                                      : props.screen === "contacts"
-                                      ? "Contacts"
-                                      : "Chats"}
-                                  </h1>
-                                  <p>Messaging screens arrive in M3.</p>
-                                  <p class="quiet">
-                                    Use the MCP tools for messaging now.
-                                    Identity creation and phone pairing will be
-                                    available here.
-                                  </p>
-                                  <a href="/keys">Set up agent access</a>
-                                </section>
+                                <StatusScreen
+                                  state={props.messaging}
+                                  refresh={props.actions.refreshMessaging}
+                                />
                               }
                             >
                               <ChatScreen
