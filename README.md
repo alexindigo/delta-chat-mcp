@@ -7,6 +7,14 @@ pairing, live conversations and a text composer; `/mcp` provides nine messaging
 tools. The native compiler counter and ping transport are isolated integration
 fixtures.
 
+## Deploy
+
+Use the [Debian LXC deployment guide](docs/deploy.md) for the verified Deno
+installer, non-root systemd service, configuration, upgrades, whole-state
+backup/restore and data-preserving uninstall. The default is all-interface plain
+HTTP on port 8080; browser cookies and API keys travel unencrypted on the LAN.
+OpenCode uses its own environment-held API key as described below.
+
 ## Development
 
 Use Deno 2.9.6 on Linux x86_64. Dependency versions are pinned in `deno.json`
