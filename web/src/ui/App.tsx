@@ -10,6 +10,7 @@ import { AccessScreen } from "./AccessScreen.tsx";
 import { KeysScreen } from "./KeysScreen.tsx";
 import { IdentityScreen } from "./IdentityScreen.tsx";
 import { ContactsScreen } from "./ContactsScreen.tsx";
+import { ChatScreen } from "./ChatScreen.tsx";
 import type { MessagingState } from "../messaging.ts";
 export function App(
   props: {
@@ -157,22 +158,32 @@ export function App(
                         <Show
                           when={props.screen === "contacts"}
                           fallback={
-                            <section class="future-screen">
-                              <h1>
-                                {props.screen === "identity"
-                                  ? "Relay identity"
-                                  : props.screen === "contacts"
-                                  ? "Contacts"
-                                  : "Chats"}
-                              </h1>
-                              <p>Messaging screens arrive in M3.</p>
-                              <p class="quiet">
-                                Use the MCP tools for messaging now. Identity
-                                creation and phone pairing will be available
-                                here.
-                              </p>
-                              <a href="/keys">Set up agent access</a>
-                            </section>
+                            <Show
+                              when={props.screen === "chats"}
+                              fallback={
+                                <section class="future-screen">
+                                  <h1>
+                                    {props.screen === "identity"
+                                      ? "Relay identity"
+                                      : props.screen === "contacts"
+                                      ? "Contacts"
+                                      : "Chats"}
+                                  </h1>
+                                  <p>Messaging screens arrive in M3.</p>
+                                  <p class="quiet">
+                                    Use the MCP tools for messaging now.
+                                    Identity creation and phone pairing will be
+                                    available here.
+                                  </p>
+                                  <a href="/keys">Set up agent access</a>
+                                </section>
+                              }
+                            >
+                              <ChatScreen
+                                state={props.messaging}
+                                actions={props.actions}
+                              />
+                            </Show>
                           }
                         >
                           <ContactsScreen

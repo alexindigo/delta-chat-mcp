@@ -9,6 +9,7 @@ import { browserTheme } from "./theme.ts";
 import { themeControl } from "./theme-control.ts";
 import { initialMessaging, Messaging } from "./messaging.ts";
 import { BrowserEvents } from "./events.ts";
+import { historyViewport, Presentation } from "./presentation.ts";
 
 export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
@@ -27,6 +28,7 @@ export function appControl() {
     (id) => page.navigate(`/chats/${id}`),
     copyText,
   );
+  const presentation = new Presentation((ids) => messaging.presented(ids));
   const dirty = () =>
     messaging.dirty || !!keys.state.shown || !!keys.state.name ||
     keys.state.busy || !!access.state.password || !!access.state.code;
@@ -73,6 +75,7 @@ export function appControl() {
       offRoute();
       page.close();
       messaging.stop(true);
+      presentation.close();
       theme.close();
     };
   });
@@ -137,6 +140,15 @@ export function appControl() {
       confirmMessageDelete: (value: boolean) => messaging.confirm(value),
       deleteMessages: () => {
         void messaging.remove();
+      },
+      observeMessage: (element: Element, id: number) =>
+        presentation.observe(element, id),
+      bindHistory: historyViewport,
+      composerKey: (event: KeyboardEvent) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          void messaging.send();
+        }
       },
       keyName: (value: string) => keys.name(value),
       createKey: () => {
