@@ -12,6 +12,14 @@ export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
   const [accessState, publishAccess] = createSignal(initialAccess());
   const [keysState, publishKeys] = createSignal(initialKeys());
+  const [routeState, publishRoute] = createSignal(page.current);
+  const offRoute = page.subscribe((value) => {
+    publishRoute(value);
+    if (
+      value.screen === "keys" && access.state.session?.authenticated &&
+      access.state.session.mode !== "public"
+    ) void keys.load();
+  });
   const keys = new Keys(api, copyText, publishKeys, () => {
     void access.refresh();
   });
@@ -26,12 +34,15 @@ export function appControl() {
     void access.refresh();
     return () => {
       keys.clear();
+      offRoute();
+      page.close();
       theme.close();
     };
   });
   return {
     accessState,
     keysState,
+    routeState,
     page,
     theme: themeControl(theme),
     config: () =>

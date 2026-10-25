@@ -16,7 +16,7 @@ render(() => {
     <App
       access={control.accessState()}
       keys={control.keysState()}
-      screen={control.page.screen}
+      screen={control.routeState().screen}
       config={control.config()}
       theme={control.theme.choice()}
       chooseTheme={(id) => control.theme.choose(id)}
