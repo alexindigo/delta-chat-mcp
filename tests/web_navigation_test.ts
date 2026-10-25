@@ -20,6 +20,7 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     { log: createLog("error", [], () => {}) },
   );
   let page: Cdp | undefined;
+  let releaseKey = () => {};
   try {
     await service.app.auth.setup({
       type: "password",
@@ -55,11 +56,11 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     await poll(() =>
       browser.evaluate<boolean>("!!document.querySelector('[data-once-key]')")
     );
-    assertEquals(
+    assert(
       await browser.evaluate(
         "document.querySelector('[data-once-key]').textContent",
-      ),
-      secret,
+      ) === secret,
+      "The shown-once key must survive in-app navigation",
     );
     assert(
       !(await browser.evaluate<string>(
@@ -68,11 +69,11 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     );
     await click(browser, '[data-action="logout"]');
     await click(browser, '[data-action="keep-work"]');
-    assertEquals(
+    assert(
       await browser.evaluate(
         "document.querySelector('[data-once-key]').textContent",
-      ),
-      secret,
+      ) === secret,
+      "Cancelling logout must retain the shown-once key",
     );
     await click(browser, '[data-action="dismiss-key"]');
     await click(browser, 'a[href="/identity"]');
@@ -127,6 +128,50 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
       await browser.evaluate("document.querySelector('#display-name').value"),
       "",
     );
+    const originalCreate = service.app.apiKeys.create.bind(service.app.apiKeys),
+      keyStarted = Promise.withResolvers<void>(),
+      keyRelease = Promise.withResolvers<void>();
+    releaseKey = () => keyRelease.resolve();
+    service.app.apiKeys.create = async (name) => {
+      const value = await originalCreate(name);
+      keyStarted.resolve();
+      await keyRelease.promise;
+      return value;
+    };
+    await click(browser, 'a[href="/keys"]');
+    await type(browser, "#key-name", "Late credential");
+    await click(browser, '[data-action="create-key"]');
+    await keyStarted.promise;
+    await click(browser, '[data-action="logout"]');
+    await click(browser, '[data-action="discard-logout"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('h1')?.textContent==='Open your relay'",
+      )
+    );
+    releaseKey();
+    await pause(100);
+    assert(
+      await browser.evaluate<boolean>(
+        "!document.querySelector('[data-once-key]') && document.querySelector('h1')?.textContent==='Open your relay'",
+      ),
+    );
+    await click(browser, "#username");
+    await key(browser, "a", 2);
+    await key(browser, "Backspace");
+    await type(browser, "#username", "operator");
+    await type(browser, "#password", "private-navigation-fixture");
+    await click(browser, '[data-action="access-submit"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('tbody')?.textContent.includes('Late credential')",
+      )
+    );
+    assert(
+      await browser.evaluate<boolean>(
+        "!document.querySelector('[data-once-key]')",
+      ),
+    );
     assertEquals(browser.errors, []);
     console.log({
       evidence,
@@ -136,8 +181,10 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
       formHistoryRetained: true,
       nativeReloadCancelled: true,
       logoutDiscardExplicit: true,
+      lateKeyResponseAfterLogoutCannotResurrectSecret: true,
     });
   } finally {
+    releaseKey();
     await page?.close();
     await service.close();
   }

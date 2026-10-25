@@ -15,10 +15,16 @@ export interface Contact {
   isKeyContact: boolean;
   e2eeAvail: boolean;
 }
+export type ChatType =
+  | "Single"
+  | "Group"
+  | "Mailinglist"
+  | "OutBroadcast"
+  | "InBroadcast";
 export interface ChatRow {
   id: number;
   name: string;
-  type: number;
+  type: ChatType;
   isEncrypted: boolean;
   isContactRequest: boolean;
   freshMessageCount: number;
@@ -30,7 +36,7 @@ export interface ChatRow {
 export interface ChatDetail {
   id: number;
   name: string;
-  type: number;
+  type: ChatType;
   isEncrypted: boolean;
   isContactRequest: boolean;
   freshMessageCount: number;

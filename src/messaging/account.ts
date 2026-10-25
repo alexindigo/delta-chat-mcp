@@ -99,7 +99,10 @@ export class AccountService {
     return await this.core.use((rpc) => rpc.getChatSecurejoinQrCode(id, null));
   }
   async inviteQrSvg() {
+    return (await this.invitation()).svg;
+  }
+  async invitation() {
     const link = await this.inviteLink();
-    return await this.core.use((rpc) => rpc.createQrSvg(link));
+    return { link, svg: await this.core.use((rpc) => rpc.createQrSvg(link)) };
   }
 }

@@ -26,6 +26,7 @@ export const initialAccess = (): AccessState => ({
 });
 export class Access {
   state = initialAccess();
+  #generation = 0;
   constructor(
     private api: Api,
     private publish: (state: AccessState) => void,
@@ -54,9 +55,13 @@ export class Access {
     this.onSession(session);
   }
   async refresh() {
+    if (this.state.busy) return;
+    const generation = ++this.#generation;
     try {
-      this.accept(await this.api.session());
+      const session = await this.api.session();
+      if (generation === this.#generation) this.accept(session);
     } catch (error) {
+      if (generation !== this.#generation) return;
       this.patch({
         loading: false,
         error: error instanceof Error
@@ -91,6 +96,7 @@ export class Access {
   }
   submit() {
     return this.run(async () => {
+      this.#generation++;
       const input = this.state;
       const session = input.session?.setupRequired
         ? await this.api.setup({
@@ -111,6 +117,7 @@ export class Access {
   }
   logout() {
     return this.run(async () => {
+      this.#generation++;
       await this.api.logout();
       this.accept(await this.api.session());
     });

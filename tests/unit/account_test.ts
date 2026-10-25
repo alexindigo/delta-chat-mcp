@@ -103,3 +103,14 @@ Deno.test("relay domain and full DCACCOUNT URI share one normalization boundary"
     );
   }
 });
+
+Deno.test("one invitation pairs its exact link with its SVG even when core rotates each generated token", async () => {
+  const { core, account } = setup();
+  await account.create({ relay: "relay.example", displayName: "Fixture" });
+  let generated = 0;
+  core.handlers.getChatSecurejoinQrCode = () =>
+    Promise.resolve(`https://i.delta.chat/#token-${++generated}`);
+  const result = await account.invitation();
+  assertEquals(generated, 1);
+  assertEquals(result.svg, `<svg>${result.link}</svg>`);
+});

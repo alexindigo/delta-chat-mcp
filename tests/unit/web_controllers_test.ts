@@ -2,7 +2,12 @@
 import { assert, assertEquals } from "@std/assert";
 import { Access } from "../../web/src/access.ts";
 import { Keys } from "../../web/src/keys.ts";
-import { type Api, ApiError, type NewKey } from "../../web/src/api.ts";
+import {
+  type Api,
+  ApiError,
+  type NewKey,
+  type Session,
+} from "../../web/src/api.ts";
 import { openCodeConfig } from "../../web/src/location.ts";
 
 Deno.test("access workflow preserves failed credentials input, confirms enrollment and clears secrets on accepted session", async () => {
@@ -78,4 +83,35 @@ Deno.test("key workflow does not resurrect a shown-once credential after logout 
   );
   assertEquals(publicConfig.mcp["delta-chat"].oauth, false);
   assertEquals(publicConfig.mcp["delta-chat"].headers, undefined);
+});
+
+Deno.test("a stale session refresh cannot reopen the UI after logout or replace a newer login", async () => {
+  const session: Session = {
+    setupRequired: false,
+    mode: "password",
+    authenticated: true,
+    username: "operator",
+  };
+  for (const action of ["logout", "login"]) {
+    const pending = Promise.withResolvers<Session>();
+    let reads = 0;
+    const access = new Access(
+      {
+        session: () =>
+          ++reads === 1
+            ? pending.promise
+            : Promise.resolve({ ...session, authenticated: false }),
+        logout: () => Promise.resolve(),
+        login: () => Promise.resolve(session),
+      } as unknown as Api,
+      () => {},
+      () => {},
+    );
+    const stale = access.refresh();
+    if (action === "logout") await access.logout();
+    else await access.submit();
+    pending.resolve({ ...session, authenticated: action === "logout" });
+    await stale;
+    assertEquals(access.state.session?.authenticated, action === "login");
+  }
 });

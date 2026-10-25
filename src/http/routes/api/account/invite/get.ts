@@ -1,6 +1,3 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { messagingRoute } from "../../../../messaging-routes.ts";
-export default messagingRoute(async (_request, app) => ({
-  link: await app.account.inviteLink(),
-  svg: await app.account.inviteQrSvg(),
-}));
+export default messagingRoute((_request, app) => app.account.invitation());

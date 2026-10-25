@@ -116,6 +116,7 @@ export class Messaging {
     this.#active = false;
     this.feed.close();
     clearTimeout(this.#timer);
+    this.#timer = undefined;
     this.#dirty = false;
     this.#sent.clear();
     this.#sendingChats.clear();
@@ -126,9 +127,11 @@ export class Messaging {
     }
   }
   invalidate() {
-    if (!this.#active) return;
-    clearTimeout(this.#timer);
-    this.#timer = setTimeout(() => void this.refresh(), 80);
+    if (!this.#active || this.#timer !== undefined) return;
+    this.#timer = setTimeout(() => {
+      this.#timer = undefined;
+      void this.refresh();
+    }, 80);
   }
   private failed(error: unknown) {
     if (error instanceof ApiError && error.status === 401) this.unauthorized();
@@ -233,12 +236,15 @@ export class Messaging {
   }
   async earlier() {
     if (this.state.historyBusy) return;
+    const epoch = this.#epoch, selection = this.#selection;
     this.#wanted += 30;
     this.patch({ historyBusy: true });
     try {
       await this.history();
     } catch (error) {
-      this.patch({ historyBusy: false, error: this.failed(error) });
+      if (epoch === this.#epoch && selection === this.#selection) {
+        this.patch({ historyBusy: false, error: this.failed(error) });
+      }
     }
   }
   presented(ids: number[]) {

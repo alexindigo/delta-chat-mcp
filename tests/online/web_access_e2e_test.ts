@@ -400,6 +400,11 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await page.send("Page.reload");
       await ready(page, "Agent access");
       await page.evaluate("document.fonts.ready");
+      await poll(() =>
+        page.evaluate<boolean>(
+          "[...document.fonts].some(f=>f.family.includes('Atkinson Hyperlegible')&&f.status==='loaded') && [...document.fonts].some(f=>f.family.includes('IBM Plex Mono')&&f.status==='loaded')",
+        )
+      );
       assert(
         await page.evaluate<boolean>(
           "[...document.fonts].some(f=>f.family.includes('Atkinson Hyperlegible')&&f.status==='loaded') && [...document.fonts].some(f=>f.family.includes('IBM Plex Mono')&&f.status==='loaded')",
@@ -509,6 +514,11 @@ async function prove(modeId: AccessMode, captures: boolean) {
     );
     console.log(JSON.stringify(facts));
   } catch (error) {
+    if (browser) {
+      facts.fontFailureProbe = await browser.evaluate(
+        "({fonts:[...document.fonts].map(f=>({family:f.family,status:f.status})),fontStatus:document.fonts.status,bodyFont:getComputedStyle(document.body).fontFamily,codeFont:document.querySelector('pre code')?getComputedStyle(document.querySelector('pre code')).fontFamily:null,ready:document.readyState})",
+      );
+    }
     await Deno.writeTextFile(
       `${evidence}/failure-observation.json`,
       JSON.stringify(facts, null, 2),

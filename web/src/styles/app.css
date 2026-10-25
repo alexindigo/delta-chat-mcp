@@ -670,6 +670,7 @@ textarea {
   margin-bottom: 20px;
 }
 .message-selection {
+  position: relative;
   margin: 0;
 }
 .message-selection input[type="checkbox"] {

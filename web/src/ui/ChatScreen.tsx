@@ -135,7 +135,10 @@ export function ChatScreen(
                   {props.state.chat?.isEncrypted
                     ? "Encrypted chat"
                     : "Encryption not indicated"} ·{" "}
-                  {props.state.chat?.contactIds.length} members
+                  {props.state.chat?.contactIds.length}{" "}
+                  {props.state.chat?.contactIds.length === 1
+                    ? "contact"
+                    : "contacts"}
                 </p>
               </Show>
             </header>

@@ -8,6 +8,7 @@ import type {
 } from "../../web/src/messaging-types.ts";
 import { ApiError } from "../../web/src/api.ts";
 import { route } from "../../web/src/location.ts";
+import { connectivity, identityName } from "../../web/src/status.ts";
 import { poll } from "../support.ts";
 
 const account: Account = {
@@ -50,7 +51,7 @@ function fixture() {
       Promise.resolve({
         id,
         name: `Chat ${id}`,
-        type: 100,
+        type: "Single",
         isEncrypted: true,
         isContactRequest: false,
         freshMessageCount: 1,
@@ -164,4 +165,71 @@ Deno.test("location parser maps path/query deep links and invalid links without 
   assertEquals(route(new URL("http://relay/chats/0")).chatId, null);
   assert(route(new URL("http://relay/chats/0")).error);
   assertEquals(route(new URL("http://relay/contacts")).screen, "contacts");
+});
+
+Deno.test("continuous change hints cannot starve canonical refetch", async () => {
+  const f = fixture();
+  let reads = 0;
+  f.api.account = () => {
+    reads++;
+    return Promise.resolve(account);
+  };
+  f.app.start();
+  await poll(() => Promise.resolve(reads === 1));
+  const timer = setInterval(() => f.change(), 10);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    assert(
+      reads >= 2,
+      "canonical state must refresh while changes are still arriving",
+    );
+  } finally {
+    clearInterval(timer);
+    f.app.stop(true);
+  }
+});
+
+Deno.test("an obsolete pagination failure cannot overwrite another conversation's state", async () => {
+  const f = fixture(),
+    pending = Promise.withResolvers<{ messages: Message[] }>();
+  let block = false;
+  f.api.messages = (id) =>
+    block && id === 3
+      ? pending.promise
+      : Promise.resolve({ messages: [message(id)] });
+  f.app.start();
+  f.app.select(3);
+  await poll(() => Promise.resolve(f.app.state.messages.length === 1));
+  block = true;
+  const old = f.app.earlier();
+  f.app.select(4);
+  await poll(() => Promise.resolve(f.app.state.messages[0]?.chatId === 4));
+  pending.reject(new ApiError(503, "Old history failed"));
+  await old;
+  assertEquals(f.app.state.chatId, 4);
+  assertEquals(f.app.state.error, "");
+  f.app.stop(true);
+});
+
+Deno.test("status distinguishes unavailable configured identity, absent identity, core and network readiness", () => {
+  assertEquals(identityName(null), "Unknown");
+  const recovering: Account = {
+    ...account,
+    core: "restarting",
+    displayName: null,
+    address: null,
+    connectivity: null,
+  };
+  assertEquals(identityName(recovering), "Unavailable while core restarts");
+  assertEquals(
+    identityName({ ...recovering, configured: false, core: "ready" }),
+    "Not configured",
+  );
+  assertEquals(connectivity(recovering, true), "Core restarting…");
+  assertEquals(
+    connectivity({ ...account, connectivity: 2000 }, true),
+    "Connecting to chatmail…",
+  );
+  assertEquals(connectivity(account, true), "Connected to chatmail");
+  assert(connectivity(account, false).includes("interrupted"));
 });

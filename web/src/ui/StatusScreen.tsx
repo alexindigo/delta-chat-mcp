@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { Show } from "solid-js";
 import type { MessagingState } from "../messaging.ts";
+import { identityName } from "../status.ts";
 export function StatusScreen(
   props: { state: MessagingState; refresh: () => void },
 ) {
@@ -13,7 +14,7 @@ export function StatusScreen(
       </p>
       <dl class="identity-facts">
         <dt>Identity</dt>
-        <dd>{props.state.account?.displayName ?? "Not configured"}</dd>
+        <dd>{identityName(props.state.account)}</dd>
         <dt>Address</dt>
         <dd class="machine">{props.state.account?.address ?? "Unavailable"}</dd>
         <dt>Core</dt>

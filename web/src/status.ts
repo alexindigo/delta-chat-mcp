@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import type { Account } from "./messaging-types.ts";
+export function identityName(account: Account | null) {
+  if (account?.displayName) return account.displayName;
+  if (account?.configured) return "Unavailable while core restarts";
+  return account?.core === "ready" ? "Not configured" : "Unknown";
+}
 export function connectivity(account: Account | null, stream: boolean) {
   if (!stream) return "Relay connection interrupted. Reconnecting…";
   if (!account) return "Checking core…";

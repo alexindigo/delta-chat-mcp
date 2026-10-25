@@ -2,10 +2,10 @@
 
 A LAN service with its own Delta Chat identity, exposed through MCP and a small
 web UI. The backend owns the core process independently of connected clients.
-The web UI provides access setup, login and API keys; `/mcp` provides nine
-messaging tools. Identity setup, contacts and conversation screens arrive in M3;
-their navigation entries currently explain that boundary. The native compiler
-counter and ping transport are isolated integration fixtures.
+The web UI provides access setup, login, API keys, identity setup, contact
+pairing, live conversations and a text composer; `/mcp` provides nine messaging
+tools. The native compiler counter and ping transport are isolated integration
+fixtures.
 
 ## Development
 
@@ -71,14 +71,16 @@ steps cannot be reused after restart. The application database contains only
 schema and API key metadata; API keys use random 256-bit values, are returned
 once, and are stored only as SHA-256 digests.
 
-Browser routes accept only the session cookie. Mutating requests and event
-streams require the request's own Origin. `/mcp` accepts only Bearer API keys in
-protected modes and rechecks them on every request, including requests on known
-MCP sessions. Each protected MCP session belongs to the key that initialized it;
-another key cannot reuse that session ID. Deleting a key immediately closes its
-sessions and cancels live waits/streams. Idle sessions expire after 30 minutes;
-shutdown closes MCP lifetimes before draining HTTP. Public mode opens access and
-emits a startup warning.
+Browser routes accept only the session cookie. Mutating requests require the
+request's own Origin. Event streams require that Origin or a same-origin Referer
+(native EventSource omits Origin on plain HTTP); missing/cross-origin provenance
+is rejected. `/mcp` accepts only Bearer API keys in protected modes and rechecks
+them on every request, including requests on known MCP sessions. Each protected
+MCP session belongs to the key that initialized it; another key cannot reuse
+that session ID. Deleting a key immediately closes its sessions and cancels live
+waits/streams. Idle sessions expire after 30 minutes; shutdown closes MCP
+lifetimes before draining HTTP. Public mode opens access and emits a startup
+warning.
 
 The offline suite proves RPC restart persistence, MCP
 handshake/list/call/session cleanup through Pathfinder, SQLite disk persistence,
@@ -86,11 +88,11 @@ and an actual Solid 2 native build followed by a hit-tested Chromium pointer
 click from `0` to `1` in `tests/fixtures/counter/`. This preserves the M0
 toolchain proof independently of product screens. Product browser tests also
 build the real UI, complete public setup, follow navigation and switch themes.
-Browser evidence is saved in `artifacts/m0/` and `artifacts/m2/`. The web test
-uses a non-loopback HTTP hostname and asserts `isSecureContext === false`.
-Chromium's test-only resolver rule maps that hostname to the development guest's
-LAN address; the Deno MCP client uses the LAN IP directly because browser
-resolver flags cannot affect Deno.
+Browser evidence is saved in `artifacts/m0/`, `artifacts/m2/` and
+`artifacts/m3/`. The web test uses a non-loopback HTTP hostname and asserts
+`isSecureContext === false`. Chromium's test-only resolver rule maps that
+hostname to the development guest's LAN address; the Deno MCP client uses the
+LAN IP directly because browser resolver flags cannot affect Deno.
 
 ## Architecture
 
@@ -99,11 +101,41 @@ its process and typed RPC client. Shared messaging services own account,
 contact, chat, send/delete and read-receipt workflows. Thin MCP adapters call
 those services. App state is separate from message history. No cursor or message
 journal is maintained. Views render state and forward intents; plain TypeScript
-controllers own access and keys, with one owner each for HTTP, theme/storage,
-browser location and clipboard. Bundled fonts require no CDN. System/Light/Dark
+controllers own access, keys, messaging and ephemeral drafts, with one owner
+each for HTTP, live invalidations, message visibility, theme/storage, browser
+location/history and clipboard. Bundled fonts require no CDN. System/Light/Dark
 selection persists as the choice ID; System follows live OS changes, with a
 pre-stylesheet head bootstrap to prevent a wrong-theme flash. Copying has a
 plain-HTTP fallback.
+
+## Messaging in the browser
+
+Open **Identity**, enter a display name and your chatmail relay domain or full
+`DCACCOUNT:` URI. An interrupted setup retries the same identity; form input is
+kept after errors. **Contacts** displays one core-generated invitation as both a
+scannable SVG and a copyable link. Scan it with Delta Chat, or paste a contact's
+invitation to join them. Email addresses alone are not pairing invitations.
+Contacts show the current core's **Key contact** and **Encryption available**
+state, and incoming requests offer **Accept** or **Block**.
+
+Use a contact's **Chat** action or choose a conversation in **Chats**.
+Agent-created rooms appear live; browser room creation is outside this version.
+History pages load upwards. Enter sends, Shift+Enter adds a line; delivery/read
+status comes from core. Incoming attachments display their name only. Selected
+deletion is explicit and local to this identity. GET inspection does not mark
+messages seen; only messages presented in the visible conversation send browser
+read receipts. Reading in either interface leaves the same history available to
+the other.
+
+One bounded SSE stream sends coalesced change hints, not another message
+journal. Every reconnect/boot handshake refetches canonical core state.
+**Status** shows the actual identity, core readiness and chatmail connectivity
+separately from the browser's connection. Drafts and form state survive in-app
+links, Back/Forward and reconnects in page memory. Failed sends keep text; a
+late successful send clears only its matching draft revision. Logout and
+document departure protect unsaved input and unacknowledged shown-once keys with
+explicit discard intent. Drafts and raw API keys are never persisted in browser
+storage.
 
 ## Agent connection
 

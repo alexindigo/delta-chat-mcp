@@ -50,6 +50,37 @@ export async function startTestPeer(
     throw error;
   }
   return {
+    // Stock-current-core vCards let private tests send encrypted unsolicited
+    // requests without SecureJoin auto-accepting the sender at the recipient.
+    selfCard: async () => {
+      const ids = await rpc.getAllAccountIds();
+      if (ids.length !== 1) {
+        throw new Error("Exactly one test identity required");
+      }
+      return await bounded(client.rpc.makeVcard(ids[0], [1]), 10000);
+    },
+    importCard: (accountId: number, card: string) =>
+      bounded(client.rpc.importVcardContents(accountId, card), 10000),
+    sendFile: (
+      accountId: number,
+      chatId: number,
+      file: string,
+      filename: string,
+    ) =>
+      bounded(
+        client.rpc.sendMsg(accountId, chatId, {
+          text: null,
+          html: null,
+          viewtype: null,
+          file,
+          filename,
+          location: null,
+          overrideSenderName: null,
+          quotedMessageId: null,
+          quotedText: null,
+        }),
+        10000,
+      ),
     call: <T>(operation: (client: CoreRpc) => Promise<T>) =>
       bounded(operation(rpc), 120000),
     close,
