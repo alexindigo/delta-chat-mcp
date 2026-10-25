@@ -35,12 +35,18 @@ export class ChatsService {
     return await this.core.use(async (rpc) => {
       const entries = await rpc.getChatlistEntries(id, null, null, null);
       const items = await rpc.getChatlistItemsByEntries(id, entries);
-      return entries.flatMap((entry) => {
+      const result = await Promise.all(entries.map(async (entry) => {
         const item = items[entry];
         if (!item || item.kind === "Error") {
           throw new Error("Unable to load chat list item");
         }
         if (item.kind !== "ChatListItem") return [];
+        const full = await rpc.getFullChatById(id, item.id);
+        const last = item.lastMessageId
+          ? (await loadMessages(rpc, id, [item.lastMessageId])).get(
+            item.lastMessageId,
+          )
+          : undefined;
         return [{
           id: item.id,
           name: item.name,
@@ -49,9 +55,12 @@ export class ChatsService {
           isContactRequest: item.isContactRequest,
           freshMessageCount: item.freshMessageCounter,
           lastMessageId: item.lastMessageId,
+          lastMessageTime: last?.timestamp ?? null,
+          contactIds: full.contactIds,
           summary: item.summaryText2,
         }];
-      });
+      }));
+      return result.flat();
     });
   }
   async get(chatId: number) {
@@ -105,6 +114,18 @@ export class ChatsService {
         return [toMessage(message)];
       });
     });
+  }
+  async readMessages(
+    chatId: number,
+    range: MessageRange = {},
+  ): Promise<Message[]> {
+    const messages = await this.messages(chatId, range);
+    await this.markSeen(
+      messages.filter((message) => !message.fromSelf).map((message) =>
+        message.id
+      ),
+    );
+    return messages;
   }
   async markSeen(ids: readonly number[]): Promise<void> {
     const messages = requireIds(ids);

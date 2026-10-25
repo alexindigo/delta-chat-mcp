@@ -24,8 +24,8 @@ export class McpSessions {
   #timer: ReturnType<typeof setInterval>;
   constructor(
     private readonly keys: ApiKeys,
-    private readonly build: (signal: AbortSignal) => McpServer =
-      createMcpServer,
+    private readonly build: (signal: AbortSignal) => McpServer = () =>
+      createMcpServer(),
     private readonly idleMs = 30 * 60_000,
   ) {
     this.#off = keys.subscribeRevoked((id) => {

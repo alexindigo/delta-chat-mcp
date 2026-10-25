@@ -17,6 +17,7 @@ import { serveHttp } from "./http/lifetime.ts";
 import { AuthState } from "./auth/state.ts";
 import { ApiKeys } from "./auth/api-keys.ts";
 import { McpSessions } from "./mcp/sessions.ts";
+import { createMcpServer } from "./mcp/server.ts";
 
 export interface ServiceBag {
   mcp?: Pick<McpSessions, "handleRequest">;
@@ -133,7 +134,6 @@ export async function startService(
     const account = new AccountService(core, events);
     await account.status();
     chats = new ChatsService(core, account, events, cfg.mcp.waitMaxSeconds);
-    mcp = new McpSessions(apiKeys);
     const app: ServiceBag = {
       auth,
       apiKeys,
@@ -158,6 +158,8 @@ export async function startService(
         configured: account.configured,
       }),
     };
+    mcp = new McpSessions(apiKeys, () => createMcpServer(app));
+    app.mcp = mcp;
     handler = await pathfinder({
       roots: [new URL("./http/routes/", import.meta.url)],
       app,

@@ -132,6 +132,17 @@ Deno.test("wait subscribes before reading and rechecks an event concurrent with 
     100,
   );
 });
+
+Deno.test("consumer read receipts include only returned incoming messages, never outgoing or another page", async () => {
+  const app = setup([900, 100, 700]);
+  app.messages.set(100, raw(100, 1));
+  const page = await app.chats.readMessages(99, { afterId: 900, limit: 1 });
+  assertEquals(page.map((message) => message.id), [100]);
+  assertEquals(app.seen, []);
+  await app.chats.readMessages(99, { beforeId: 100, limit: 1 });
+  assertEquals(app.seen, [900]);
+  assertEquals(app.ids, [900, 100, 700]);
+});
 Deno.test("wait remains subscribed through recovery, and timeout/abort release subscriptions", async () => {
   const app = setup([900]);
   app.core.available = false;
