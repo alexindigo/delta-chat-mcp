@@ -39,19 +39,50 @@ export type CoreRpc = Pick<RawClient, (typeof methods)[number]> & {
   getTransportAddresses(accountId: number): Promise<string[]>;
   getConfig(accountId: number, key: "displayname"): Promise<string | null>;
 };
+export class CoreRpcError extends Error {
+  readonly code?: number;
+  constructor(readonly method: string, error: unknown) {
+    super(`Core RPC ${method} failed`);
+    this.name = "CoreRpcError";
+    if (
+      error && typeof error === "object" && "code" in error &&
+      typeof error.code === "number"
+    ) this.code = error.code;
+  }
+}
+async function safeRpc<T>(
+  method: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new CoreRpcError(method, error);
+  }
+}
 export function createCoreFacade(raw: RawClient): CoreRpc {
   const operations = Object.fromEntries(
-    methods.map((name) => [name, raw[name].bind(raw)]),
+    methods.map((
+      name,
+    ) => [
+      name,
+      (...args: unknown[]) =>
+        safeRpc(
+          name,
+          () => Reflect.apply(raw[name], raw, args) as Promise<unknown>,
+        ),
+    ]),
   );
   return Object.freeze({
     ...operations,
     getTransportAddresses: async (accountId: number) =>
-      (await raw.listTransports(accountId)).map((transport) => transport.addr),
+      (await safeRpc("listTransports", () => raw.listTransports(accountId)))
+        .map((transport) => transport.addr),
     getConfig: (accountId: number, key: "displayname") => {
       if (key !== "displayname") {
         throw new Error("Unsupported profile configuration read");
       }
-      return raw.getConfig(accountId, key);
+      return safeRpc("getConfig", () => raw.getConfig(accountId, key));
     },
   }) as CoreRpc;
 }

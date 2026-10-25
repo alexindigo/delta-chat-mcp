@@ -27,6 +27,17 @@ selected relay. `start` runs the service until SIGTERM or SIGINT. The public
 health endpoint is `GET /_/health`; it reports core readiness/recovery and
 whether the messaging identity is configured.
 
+Interrupted first identity setup is retryable: creation resumes the same core
+account while it remains unconfigured, including after restart. A configured
+identity cannot be replaced, and multiple allocated identities are rejected.
+Account keys and history are never reset to recover provisioning.
+
+On shutdown the composition owner stops application admission, gives accepted
+HTTP work a one-second drain window, then cancels remaining connections and
+joins request handlers and the core child before closing state. Incomplete
+uploads or streamed responses cannot hold the native HTTP server open
+indefinitely.
+
 ## Configuration and access
 
 Shipped `defaults/config.toml` documents each setting. An optional file selected

@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { parse } from "@std/toml";
-import { DatabaseSync } from "node:sqlite";
 import type { CoreClient, CoreRpc } from "../../src/core/client.ts";
 import { CoreProcess } from "../../src/core/process.ts";
 import { ChangeHub } from "../../src/events.ts";
@@ -10,23 +8,9 @@ import {
   IdentityRequired,
 } from "../../src/messaging/account.ts";
 import { deadline, fixture } from "../support.ts";
+import { publicKeys } from "../account_keys.ts";
 
 class ProvisioningFailure extends Error {}
-
-/** Read actual persisted public keys, never export private key material. */
-async function publicKeys(accountsDir: string) {
-  const config = parse(await Deno.readTextFile(`${accountsDir}/accounts.toml`));
-  const accounts = config.accounts as { dir: string }[];
-  assertEquals(accounts.length, 1);
-  const db = new DatabaseSync(`${accountsDir}/${accounts[0].dir}/dc.db`, {
-    readOnly: true,
-  });
-  try {
-    return db.prepare("SELECT public_key FROM keypairs ORDER BY id").all();
-  } finally {
-    db.close();
-  }
-}
 
 Deno.test("actual unconfigured identity resumes provisioning immediately and after restart without replacing ID or keys", async () => {
   const accountsDir = await fixture("account-recovery");

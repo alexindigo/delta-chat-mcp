@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { CoreProcess, type CoreState } from "../../src/core/process.ts";
-import { CoreUnavailable } from "../../src/core/client.ts";
+import { CoreRpcError, CoreUnavailable } from "../../src/core/client.ts";
 import { deadline, fixture, poll } from "../support.ts";
 
 function exists(pid: number) {
@@ -34,6 +34,11 @@ Deno.test("owned core survives crash, rejects unavailable calls and preserves id
       "v2.65.0",
     );
     const account = await core.use((rpc) => rpc.addAccount());
+    const failure = await assertRejects(
+      () => core.use((rpc) => rpc.getMessage(account, 0xffffffff)),
+      CoreRpcError,
+    );
+    assertEquals(failure.method, "getMessage");
     const pid = core.pid!;
     assert(exists(pid));
     Deno.kill(pid, "SIGKILL");

@@ -14,6 +14,7 @@ export interface Message {
   timestamp: number;
   state: MessageState;
   hasAttachment: boolean;
+  encrypted: boolean;
   attachmentName?: string;
 }
 export function toMessage(message: CoreMessage): Message {
@@ -26,6 +27,7 @@ export function toMessage(message: CoreMessage): Message {
     timestamp: message.timestamp,
     state: messageState(message.state),
     hasAttachment: message.file !== null || message.fileName !== null,
+    encrypted: message.showPadlock,
     ...(message.fileName !== null ? { attachmentName: message.fileName } : {}),
   };
 }

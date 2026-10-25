@@ -161,11 +161,17 @@ Deno.test("send preserves exact text, read uses markseen and deletion is local-o
   const app = setup();
   assertEquals(await app.send.sendTextToContact(42, " exact fixture \n"), {
     messageId: 500,
+    chatId: 99,
     state: "pending",
   });
   const sent = (await app.chats.messages(99, { afterId: 700 }))[0];
   assertEquals(sent.text, " exact fixture \n");
   assertEquals(sent.fromSelf, true);
+  assertEquals(sent.encrypted, true);
+  assertEquals(await app.send.status([500]), [{
+    messageId: 500,
+    state: "pending",
+  }]);
   await app.chats.markSeen([100, 100]);
   assertEquals(app.seen, [100]);
   await app.remove.deleteMessages([100]);

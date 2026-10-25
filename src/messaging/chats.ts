@@ -4,6 +4,7 @@ import type { ChangeHub } from "../events.ts";
 import type { AccountService } from "./account.ts";
 import { type Message, toMessage } from "./message.ts";
 import { requireId, requireIds } from "./validation.ts";
+import { loadMessages } from "./load.ts";
 
 export class UnknownMessageAnchor extends Error {
   constructor() {
@@ -96,17 +97,11 @@ export class ChatsService {
         ? selected.slice(-limit)
         : selected.slice(0, limit);
       if (!page.length) return [];
-      const loaded = await rpc.getMessages(id, page);
-      const missing = page.filter((messageId) =>
-        !loaded[messageId] || loaded[messageId].kind === "loadingError"
-      );
-      if (missing.length && (await rpc.getExistingMsgIds(id, missing)).length) {
-        throw new Error("Unable to load existing message");
-      }
+      const loaded = await loadMessages(rpc, id, page);
       return page.flatMap((messageId) => {
-        const message = loaded[messageId];
+        const message = loaded.get(messageId);
         // A concurrent deletion is absence, never a fabricated empty message.
-        if (!message || message.kind === "loadingError") return [];
+        if (!message) return [];
         return [toMessage(message)];
       });
     });
