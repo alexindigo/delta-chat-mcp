@@ -1,0 +1,28 @@
+[Unit]
+Description=Delta Chat MCP LAN relay
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=delta-chat-mcp
+Group=delta-chat-mcp
+WorkingDirectory=/opt/delta-chat-mcp
+Environment=DCMCP_DATA_DIR=/var/lib/delta-chat-mcp
+Environment=DENO_DIR=/var/cache/delta-chat-mcp/deno
+Environment=TMPDIR=/var/cache/delta-chat-mcp/tmp
+EnvironmentFile=-/etc/delta-chat-mcp/env
+ExecStart=/usr/local/bin/deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys /opt/delta-chat-mcp/main.ts
+ExecStartPost=/usr/local/bin/deno run --allow-net --allow-read --allow-env /opt/delta-chat-mcp/deploy/check-ready.ts
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=60
+TimeoutStopSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
