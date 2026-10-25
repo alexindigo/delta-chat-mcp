@@ -7,6 +7,9 @@
   --accent: #126381;
   --line: #bbcadd;
   --on-accent: #ffffff;
+  --rail: #172d4b;
+  --rail-ink: #ffffff;
+  --rail-quiet: #bbcadd;
   --clear: transparent;
   --body-font: "Atkinson Hyperlegible", sans-serif;
   --code-font: "IBM Plex Mono", monospace;
@@ -31,4 +34,7 @@ html.dark {
   --accent: #79c9e4;
   --line: #4c6480;
   --on-accent: #18263b;
+  --rail: #18263b;
+  --rail-ink: #e6eef8;
+  --rail-quiet: #adbed4;
 }

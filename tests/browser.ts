@@ -30,11 +30,10 @@ export async function type(browser: Cdp, selector: string, text: string) {
   await browser.send("Input.insertText", { text });
 }
 export async function key(browser: Cdp, value: string, modifiers = 0) {
-  const code = value === "Tab"
-    ? 9
-    : value === "Enter"
-    ? 13
-    : value.toUpperCase().charCodeAt(0);
+  const code =
+    ({ Tab: 9, Enter: 13, Backspace: 8, Escape: 27 } as Record<string, number>)[
+      value
+    ] ?? value.toUpperCase().charCodeAt(0);
   await browser.send("Input.dispatchKeyEvent", {
     type: "keyDown",
     key: value,
@@ -42,6 +41,7 @@ export async function key(browser: Cdp, value: string, modifiers = 0) {
     windowsVirtualKeyCode: code,
     nativeVirtualKeyCode: code,
     modifiers,
+    ...(value === "Enter" ? { text: "\r", unmodifiedText: "\r" } : {}),
   });
   await browser.send("Input.dispatchKeyEvent", {
     type: "keyUp",

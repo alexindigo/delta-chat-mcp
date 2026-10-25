@@ -2,8 +2,10 @@
 
 A LAN service with its own Delta Chat identity, exposed through MCP and a small
 web UI. The backend owns the core process independently of connected clients.
-Product MCP tools and web screens are separate milestones; the retained counter
-and ping endpoints are integration fixtures, not the product interface.
+The web UI provides access setup, login and API keys; `/mcp` provides nine
+messaging tools. Identity setup, contacts and conversation screens arrive in M3;
+their navigation entries currently explain that boundary. The native compiler
+counter and ping transport are isolated integration fixtures.
 
 ## Development
 
@@ -72,15 +74,20 @@ once, and are stored only as SHA-256 digests.
 Browser routes accept only the session cookie. Mutating requests and event
 streams require the request's own Origin. `/mcp` accepts only Bearer API keys in
 protected modes and rechecks them on every request, including requests on known
-MCP sessions. Public mode opens access and emits a startup warning. The API-key
-management UI/routes and product MCP transport are provided by the next
-milestone; this backend exposes their access-state modules.
+MCP sessions. Each protected MCP session belongs to the key that initialized it;
+another key cannot reuse that session ID. Deleting a key immediately closes its
+sessions and cancels live waits/streams. Idle sessions expire after 30 minutes;
+shutdown closes MCP lifetimes before draining HTTP. Public mode opens access and
+emits a startup warning.
 
 The offline suite proves RPC restart persistence, MCP
 handshake/list/call/session cleanup through Pathfinder, SQLite disk persistence,
 and an actual Solid 2 native build followed by a hit-tested Chromium pointer
-click from `0` to `1`. Browser evidence is saved in `artifacts/m0/`. The web
-test uses a non-loopback HTTP hostname and asserts `isSecureContext === false`.
+click from `0` to `1` in `tests/fixtures/counter/`. This preserves the M0
+toolchain proof independently of product screens. Product browser tests also
+build the real UI, complete public setup, follow navigation and switch themes.
+Browser evidence is saved in `artifacts/m0/` and `artifacts/m2/`. The web test
+uses a non-loopback HTTP hostname and asserts `isSecureContext === false`.
 Chromium's test-only resolver rule maps that hostname to the development guest's
 LAN address; the Deno MCP client uses the LAN IP directly because browser
 resolver flags cannot affect Deno.
@@ -88,10 +95,79 @@ resolver flags cannot affect Deno.
 ## Architecture
 
 Delta Chat core owns identity, contacts and message history. `src/core/` owns
-its process and typed RPC client; later messaging services will be shared by
-thin MCP and web adapters. App state is separate from message history. No cursor
-or message journal is maintained. The counter web spike is technical
-scaffolding, not the product's visual design.
+its process and typed RPC client. Shared messaging services own account,
+contact, chat, send/delete and read-receipt workflows. Thin MCP adapters call
+those services. App state is separate from message history. No cursor or message
+journal is maintained. Views render state and forward intents; plain TypeScript
+controllers own access and keys, with one owner each for HTTP, theme/storage,
+browser location and clipboard. Bundled fonts require no CDN. System/Light/Dark
+selection persists as the choice ID; System follows live OS changes, with a
+pre-stylesheet head bootstrap to prevent a wrong-theme flash. Copying has a
+plain-HTTP fallback.
+
+## Agent connection
+
+Open the relay's LAN URL, complete access setup, then create a named key on
+**API keys**. Save the key when it is shown; it cannot be retrieved later. The
+page lists created/last-used times and confirms deletion. Public access explains
+that no key is needed. API keys grant access to **every chat** of this identity.
+
+The page supplies a configuration snippet using the browser's actual origin.
+Merge this entry into OpenCode yourself; the relay never edits your
+configuration. For password or password + TOTP access, set `DELTA_CHAT_MCP_KEY`
+in OpenCode's environment to the saved key:
+
+```json
+{
+  "mcp": {
+    "delta-chat": {
+      "type": "remote",
+      "url": "http://<lan-domain>:<port>/mcp",
+      "oauth": false,
+      "headers": { "Authorization": "Bearer {env:DELTA_CHAT_MCP_KEY}" },
+      "enabled": false
+    }
+  }
+}
+```
+
+Omit `headers` in Public mode. Enable the MCP for a coding session and disable
+it afterwards; receiving messages continues independently. MCP accepts only the
+Bearer credential, never the web cookie. Session IDs are routing state, not
+keys.
+
+| Tool                | Purpose                                                                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`            | Identity address/display name, configuration and connectivity                                                                                |
+| `list_contacts`     | Actual `keyContact` and `encryptionAvailable` state; no obsolete verified flag                                                               |
+| `list_chats`        | All chats/rooms/contact requests, member IDs and last message ID/time                                                                        |
+| `read_messages`     | Core history oldest→newest; `chat_id`, `after_id` OR `before_id`, default20/max100                                                           |
+| `wait_for_messages` | Newer messages or an empty `timedOut:true` result; default120 seconds bounded by `mcp.waitMaxSeconds`; client cancellation releases the wait |
+| `send_message`      | Exact text to `chat_id` OR `contact_id`                                                                                                      |
+| `message_status`    | Batch delivery/read/not-found state                                                                                                          |
+| `delete_messages`   | Explicit local-only deletion, never for everyone                                                                                             |
+| `create_room`       | Named room with selected `contact_ids`; send its first text to deliver it to peers                                                           |
+
+Every successful tool result contains JSON text plus matching
+`structuredContent`. Failures expose sanitized reasons rather than backend
+errors or filesystem paths. Reading/waiting mark **only returned incoming
+messages** seen and send read receipts. Reading never deletes. Remember the last
+returned ID in the agent session and pass it explicitly; a deleted/unknown
+anchor is an error, never an implicit restart from the beginning. A fresh agent
+session can create a fresh room. No cursor, journal, whitelist or persistent
+per-agent state is added.
+
+The separate online suite uses private throwaway fixtures, the official MCP SDK
+over LAN HTTP, real A/B/C relay peers and headless Chromium on
+`http://delta-chat-mcp.test`. It proves receiving consumers, encrypted room
+first text, delayed/already-present/timeout/aborted waits, peer read receipts,
+reconnect history, durable local deletion, revocation of initialized sessions
+and shutdown. Browser checks complete Public/Password/TOTP setup and
+login/logout, paste a copied key into a real browser field, use/revoke that key
+through MCP, exercise all three themes/live OS/storage errors/keyboard, and
+compare head bootstrap timing to the browser's first paint. Only final full
+Login/Keys light/dark screenshots are deliverables; private region-review
+captures remain artifacts.
 
 The service is intended for plain HTTP on the LAN. Cookies and API keys will
 travel unencrypted on that LAN; it is not intended for public exposure.

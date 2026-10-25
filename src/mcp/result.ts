@@ -20,10 +20,14 @@ export async function toolResult(
       : name === "AbortError"
       ? "cancelled"
       : "request_failed";
+    const structuredContent = { error: reason };
     return {
       isError: true,
-      content: [{ type: "text" as const, text: reason }],
-      structuredContent: { error: reason },
+      content: [{
+        type: "text" as const,
+        text: JSON.stringify(structuredContent),
+      }],
+      structuredContent,
     };
   }
 }

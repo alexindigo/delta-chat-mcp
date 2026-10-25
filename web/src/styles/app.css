@@ -157,15 +157,14 @@ pre code {
 }
 .relay-context {
   padding: 48px;
-  background: var(--ink);
-  color: var(--sheet);
+  background: var(--rail);
+  color: var(--rail-ink);
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 .relay-context .quiet {
-  color: var(--sheet);
-  opacity: 0.8;
+  color: var(--rail-quiet);
 }
 .relay-path {
   display: grid;
@@ -182,7 +181,7 @@ pre code {
   font-size: 1.25rem;
 }
 .relay-station i {
-  border: 2px solid var(--sheet);
+  border: 2px solid var(--rail-ink);
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -192,7 +191,7 @@ pre code {
   justify-self: center;
   width: 2px;
   height: 24px;
-  background: var(--sheet);
+  background: var(--rail-ink);
 }
 .relay-path .relay-node {
   font-weight: 700;

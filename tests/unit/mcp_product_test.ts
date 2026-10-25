@@ -61,6 +61,10 @@ Deno.test("product official SDK exposes tools and sanitized identity status over
       arguments: { chat_id: 10 },
     });
     assert(failed.isError);
+    assertEquals(failed.content, [{
+      type: "text",
+      text: JSON.stringify(failed.structuredContent),
+    }]);
     assert(!JSON.stringify(failed).includes(cfg.data.dir));
     await transport.terminateSession();
   } finally {
