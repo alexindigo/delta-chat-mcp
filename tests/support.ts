@@ -33,3 +33,13 @@ export async function fixture(kind: string) {
   await Deno.mkdir(root, { recursive: true });
   return await Deno.makeTempDir({ dir: root.pathname, prefix: "run-" });
 }
+
+/** Use the guest's real LAN interface; loopback cannot prove LAN HTTP. */
+export function lanAddress() {
+  const iface = Deno.networkInterfaces().find((item) =>
+    item.family === "IPv4" && !item.address.startsWith("127.") &&
+    !item.address.startsWith("169.254.")
+  );
+  if (!iface) throw new Error("A non-loopback IPv4 interface is required");
+  return iface.address;
+}
