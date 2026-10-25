@@ -4,7 +4,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>M0 Solid 2 counter proof</title>
+    <meta name="theme-color" content="#eaf0f7" />
+    <script>
+    (() => {
+      let choice = "system";
+      try {
+        const saved = localStorage.getItem("delta-chat-mcp-theme");
+        if (saved === "light" || saved === "dark") choice = saved;
+      } catch { /* Storage errors must not prevent OS resolution. */ }
+      const dark = choice === "dark" ||
+        (choice === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", dark);
+      document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      document.querySelector('meta[name="theme-color"]').setAttribute(
+        "content",
+        dark ? "#18263b" : "#eaf0f7",
+      );
+    })();
+    </script>
+    <title>Delta Chat relay desk</title>
   </head>
   <body>
     <div id="app"></div>

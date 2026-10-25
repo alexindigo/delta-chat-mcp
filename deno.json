@@ -32,7 +32,9 @@
     "@solidjs/signals": "npm:@solidjs/signals@2.0.0-rc.18",
     "@solidjs/compiler": "npm:@solidjs/compiler@2.0.0-rc.18",
     "@solidjs/vite-plugin": "npm:@solidjs/vite-plugin@3.0.0-next.51",
-    "vite": "npm:vite@8.3.5"
+    "vite": "npm:vite@8.3.5",
+    "@fontsource/atkinson-hyperlegible": "npm:@fontsource/atkinson-hyperlegible@5.2.8",
+    "@fontsource/ibm-plex-mono": "npm:@fontsource/ibm-plex-mono@5.2.7"
   },
   "fmt": {
     "exclude": [

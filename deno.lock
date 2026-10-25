@@ -11,6 +11,8 @@
     "jsr:@std/toml@1.0.11": "1.0.11",
     "npm:@deltachat/jsonrpc-client@2.65.0": "2.65.0_ws@8.22.0",
     "npm:@deltachat/stdio-rpc-server@2.65.0": "2.65.0_@deltachat+jsonrpc-client@2.65.0_ws@8.22.0",
+    "npm:@fontsource/atkinson-hyperlegible@5.2.8": "5.2.8",
+    "npm:@fontsource/ibm-plex-mono@5.2.7": "5.2.7",
     "npm:@modelcontextprotocol/client@2.4.0": "2.4.0",
     "npm:@modelcontextprotocol/server@2.4.0": "2.4.0",
     "npm:@solidjs/compiler@2.0.0-rc.18": "2.0.0-rc.18",
@@ -296,6 +298,12 @@
       "dependencies": [
         "tslib"
       ]
+    },
+    "@fontsource/atkinson-hyperlegible@5.2.8": {
+      "integrity": "sha512-HciLcJ5DIK/OVOdo71EbEN4NnvDFlp6/SpAxtcbWf2aAdcsOuPqITxj5KNEXb48qSPSdnnZdGGnSJChPKi3/bA=="
+    },
+    "@fontsource/ibm-plex-mono@5.2.7": {
+      "integrity": "sha512-MKAb8qV+CaiMQn2B0dIi1OV3565NYzp3WN5b4oT6LTkk+F0jR6j0ZN+5BKJiIhffDC3rtBULsYZE65+0018z9w=="
     },
     "@jridgewell/gen-mapping@0.3.13": {
       "integrity": "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==",
@@ -989,6 +997,8 @@
       "jsr:@std/toml@1.0.11",
       "npm:@deltachat/jsonrpc-client@2.65.0",
       "npm:@deltachat/stdio-rpc-server@2.65.0",
+      "npm:@fontsource/atkinson-hyperlegible@5.2.8",
+      "npm:@fontsource/ibm-plex-mono@5.2.7",
       "npm:@modelcontextprotocol/client@2.4.0",
       "npm:@modelcontextprotocol/server@2.4.0",
       "npm:@solidjs/compiler@2.0.0-rc.18",
