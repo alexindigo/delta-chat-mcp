@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+import {
+  type CoreMessage,
+  isSelfContact,
+  type MessageState,
+  messageState,
+} from "../core/client.ts";
+export interface Message {
+  id: number;
+  chatId: number;
+  fromContactId: number;
+  fromSelf: boolean;
+  text: string;
+  timestamp: number;
+  state: MessageState;
+  hasAttachment: boolean;
+  attachmentName?: string;
+}
+export function toMessage(message: CoreMessage): Message {
+  return {
+    id: message.id,
+    chatId: message.chatId,
+    fromContactId: message.fromId,
+    fromSelf: isSelfContact(message.fromId),
+    text: message.text,
+    timestamp: message.timestamp,
+    state: messageState(message.state),
+    hasAttachment: message.file !== null || message.fileName !== null,
+    ...(message.fileName !== null ? { attachmentName: message.fileName } : {}),
+  };
+}

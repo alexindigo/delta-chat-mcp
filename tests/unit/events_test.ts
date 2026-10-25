@@ -57,3 +57,14 @@ Deno.test("actual core delivery, read, global history and connectivity events wa
   ]);
   assertEquals(received.at(-1), { type: "connectivity" });
 });
+Deno.test("core event queue overflow invalidates all history consumers without inventing state", () => {
+  const hub = new ChangeHub();
+  const received: Change[] = [];
+  hub.subscribe((change) => {
+    received.push(change);
+  });
+  publishCoreEvent(hub, { kind: "EventChannelOverflow", n: 5 });
+  assertEquals(received, [{ type: "account" }, { type: "contacts" }, {
+    type: "chats",
+  }, { type: "messages", chatId: 0, ids: [] }]);
+});

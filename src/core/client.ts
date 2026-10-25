@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import type { RawClient } from "@deltachat/jsonrpc-client";
 import type { DcEvent } from "@deltachat/jsonrpc-client";
+import { C } from "@deltachat/jsonrpc-client";
 import type { ChangeHub } from "../events.ts";
 
 /** One explicit allowlist defines both the runtime and typed RPC boundary. */
@@ -26,6 +27,7 @@ const methods = [
   "getChatlistItemsByEntries",
   "getFullChatById",
   "getMessageIds",
+  "getExistingMsgIds",
   "getMessage",
   "getMessages",
   "markseenMsgs",
@@ -56,6 +58,39 @@ export function createCoreFacade(raw: RawClient): CoreRpc {
 export type CoreEvent = DcEvent;
 export type CoreMessage = Awaited<ReturnType<CoreRpc["getMessage"]>>;
 export type CoreContact = Awaited<ReturnType<CoreRpc["getContacts"]>>[number];
+export type MessageState =
+  | "fresh"
+  | "noticed"
+  | "seen"
+  | "draft"
+  | "pending"
+  | "failed"
+  | "delivered"
+  | "read"
+  | "unknown";
+export function messageState(state: number): MessageState {
+  switch (state) {
+    case C.DC_STATE_IN_FRESH:
+      return "fresh";
+    case C.DC_STATE_IN_NOTICED:
+      return "noticed";
+    case C.DC_STATE_IN_SEEN:
+      return "seen";
+    case C.DC_STATE_OUT_DRAFT:
+      return "draft";
+    case C.DC_STATE_OUT_PENDING:
+      return "pending";
+    case C.DC_STATE_OUT_FAILED:
+      return "failed";
+    case C.DC_STATE_OUT_DELIVERED:
+      return "delivered";
+    case C.DC_STATE_OUT_MDN_RCVD:
+      return "read";
+    default:
+      return "unknown";
+  }
+}
+export const isSelfContact = (id: number) => id === C.DC_CONTACT_ID_SELF;
 export interface CoreClient {
   /** Calls are bound to one generation; a lost core rejects, never silently retries writes. */
   use<T>(call: (rpc: CoreRpc) => Promise<T>): Promise<T>;
@@ -99,6 +134,12 @@ export function publishCoreEvent(hub: ChangeHub, event: CoreEvent): void {
     case "AccountsChanged":
     case "AccountsItemChanged":
       hub.emit({ type: "account" });
+      break;
+    case "EventChannelOverflow":
+      hub.emit({ type: "account" });
+      hub.emit({ type: "contacts" });
+      hub.emit({ type: "chats" });
+      hub.emit({ type: "messages", chatId: 0, ids: [] });
       break;
   }
 }
