@@ -1,0 +1,49 @@
+{
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
+  },
+  "tasks": {
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "lint": "deno lint",
+    "check": "deno check main.ts",
+    "test": "deno test --permit-no-files --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys --ignore=tests/online",
+    "test:online": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys tests/online/",
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys main.ts"
+  },
+  "imports": {
+    "@pathfinder/pathfinder": "jsr:@pathfinder/pathfinder@0.2.4",
+    "@std/assert": "jsr:@std/assert@1.0.19",
+    "@std/path": "jsr:@std/path@1.1.5",
+    "@std/toml": "jsr:@std/toml@1.0.11",
+    "@deltachat/jsonrpc-client": "npm:@deltachat/jsonrpc-client@2.65.0",
+    "@deltachat/stdio-rpc-server": "npm:@deltachat/stdio-rpc-server@2.65.0",
+    "@modelcontextprotocol/server": "npm:@modelcontextprotocol/server@2.4.0",
+    "@modelcontextprotocol/client": "npm:@modelcontextprotocol/client@2.4.0",
+    "jose": "npm:jose@6.1.3",
+    "otplib": "npm:otplib@12.0.1",
+    "zod": "npm:zod@4.6.7",
+    "solid-js": "npm:solid-js@2.0.0-rc.18",
+    "@solidjs/web": "npm:@solidjs/web@2.0.0-rc.18",
+    "@solidjs/signals": "npm:@solidjs/signals@2.0.0-rc.18",
+    "@solidjs/compiler": "npm:@solidjs/compiler@2.0.0-rc.18",
+    "@solidjs/vite-plugin": "npm:@solidjs/vite-plugin@3.0.0-next.51",
+    "vite": "npm:vite@8.3.5"
+  },
+  "fmt": {
+    "exclude": [
+      "node_modules",
+      "web/dist",
+      ".test-state",
+      ".tmp",
+      "artifacts",
+      "LICENSE"
+    ]
+  },
+  "lint": {
+    "exclude": ["node_modules", "web/dist", ".test-state", ".tmp", "artifacts"]
+  }
+}

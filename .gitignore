@@ -1,0 +1,10 @@
+node_modules/
+data/
+web/dist/
+.test-state/
+.tmp/
+artifacts/
+.envrc
+token
+*.local.toml
+*.test
