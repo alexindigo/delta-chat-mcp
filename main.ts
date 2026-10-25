@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
-/** M0 configuration placeholder. The service lifecycle is implemented in M1. */
-export function loadConfig() {
-  return { dataDir: Deno.env.get("DCMCP_DATA_DIR") ?? "./data" };
-}
+import { loadConfig } from "./src/config.ts";
+import { startService } from "./src/service.ts";
+import { createLog } from "./src/log.ts";
 
 if (import.meta.main) {
-  loadConfig();
-  console.log("delta-chat-mcp foundations; no service started yet.");
+  try {
+    const service = await startService(loadConfig(), { signals: true });
+    await service.finished;
+  } catch (error) {
+    createLog("error").event("error", "startup_failed", {
+      name: error instanceof Error ? error.name : typeof error,
+    });
+    Deno.exitCode = 1;
+  }
 }

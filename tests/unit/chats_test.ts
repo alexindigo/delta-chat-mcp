@@ -208,3 +208,10 @@ Deno.test("global history invalidation wakes wait and attachments expose names w
   assert(!JSON.stringify(result).includes("/fixture/blob"));
   assertEquals(app.hub.listenerCount, 0);
 });
+Deno.test("service-owned wait lifetime aborts outstanding subscriptions on shutdown", async () => {
+  const app = setup([900]);
+  const waiting = app.chats.waitForMessage(99, 900, 1000);
+  app.chats.close();
+  await assertRejects(() => waiting, DOMException, "aborted");
+  assertEquals(app.hub.listenerCount, 0);
+});

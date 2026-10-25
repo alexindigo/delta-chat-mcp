@@ -4,11 +4,12 @@ import type { SpikeMcp } from "../mcp/spike.ts";
 
 declare module "@pathfinder/pathfinder" {
   interface App {
-    mcp: Pick<SpikeMcp, "handleRequest">;
+    mcp?: Pick<SpikeMcp, "handleRequest">;
   }
 }
 
 const handler: Handler = (request, context) =>
-  context.app.mcp.handleRequest(request._raw);
+  context.app.mcp?.handleRequest(request._raw) ??
+    Response.json({ error: "MCP transport not installed" }, { status: 501 });
 
 export default handler;

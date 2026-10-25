@@ -9,6 +9,11 @@ export class IdentityRequired extends Error {
 }
 export class AccountService {
   #creating = false;
+  #configured = false;
+  /** Last core-observed configuration, available while the core is recovering. */
+  get configured() {
+    return this.#configured;
+  }
   constructor(
     private readonly core: CoreClient,
     private readonly events: ChangeHub,
@@ -19,6 +24,7 @@ export class AccountService {
       if (ids.length !== 1 || !await rpc.isConfigured(ids[0])) {
         throw new IdentityRequired();
       }
+      this.#configured = true;
       return ids[0];
     });
   }
@@ -28,6 +34,7 @@ export class AccountService {
       if (ids.length > 1) throw new IdentityRequired();
       const accountId = ids[0] ?? null;
       if (accountId === null) {
+        this.#configured = false;
         return {
           configured: false,
           accountId,
@@ -37,6 +44,7 @@ export class AccountService {
         };
       }
       const configured = await rpc.isConfigured(accountId);
+      this.#configured = configured;
       return {
         configured,
         accountId,

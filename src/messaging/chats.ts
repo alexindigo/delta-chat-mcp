@@ -19,6 +19,10 @@ export interface MessageRange {
 export type WaitResult = { timedOut: boolean; messages: Message[] };
 
 export class ChatsService {
+  #lifetime = new AbortController();
+  close(): void {
+    this.#lifetime.abort();
+  }
   constructor(
     private readonly core: CoreClient,
     private readonly account: AccountService,
@@ -119,6 +123,10 @@ export class ChatsService {
     timeoutMs: number,
     signal?: AbortSignal,
   ): Promise<WaitResult> {
+    signal = AbortSignal.any([
+      this.#lifetime.signal,
+      ...(signal ? [signal] : []),
+    ]);
     requireId(chatId);
     requireId(afterId);
     if (
