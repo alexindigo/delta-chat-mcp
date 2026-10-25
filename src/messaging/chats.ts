@@ -133,6 +133,27 @@ export class ChatsService {
     const id = await this.account.id();
     await this.core.use((rpc) => rpc.markseenMsgs(id, messages));
   }
+  async waitAndRead(
+    chatId: number,
+    afterId: number,
+    timeoutMs: number,
+    signal: AbortSignal,
+  ): Promise<WaitResult> {
+    const result = await this.waitForMessage(
+      chatId,
+      afterId,
+      timeoutMs,
+      signal,
+    );
+    signal.throwIfAborted();
+    const messages = result.messages.slice(0, 100);
+    await this.markSeen(
+      messages.filter((message) => !message.fromSelf).map((message) =>
+        message.id
+      ),
+    );
+    return { timedOut: result.timedOut, messages };
+  }
   waitForMessage(
     chatId: number,
     afterId: number,

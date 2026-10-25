@@ -143,6 +143,28 @@ Deno.test("consumer read receipts include only returned incoming messages, never
   assertEquals(app.seen, [900]);
   assertEquals(app.ids, [900, 100, 700]);
 });
+
+Deno.test("bounded consumer wait marks only its returned page and cancellation releases the shared listener", async () => {
+  const app = setup(Array.from({ length: 105 }, (_, i) => i + 100));
+  const result = await app.chats.waitAndRead(
+    99,
+    100,
+    1000,
+    new AbortController().signal,
+  );
+  assertEquals(result.messages.length, 100);
+  assertEquals(app.seen, result.messages.map((message) => message.id));
+  assertEquals(app.hub.listenerCount, 0);
+  const controller = new AbortController();
+  const wait = assertRejects(
+    () => app.chats.waitAndRead(99, 204, 1000, controller.signal),
+    DOMException,
+  );
+  controller.abort();
+  await wait;
+  assertEquals(app.hub.listenerCount, 0);
+  assertEquals(app.seen.length, 100);
+});
 Deno.test("wait remains subscribed through recovery, and timeout/abort release subscriptions", async () => {
   const app = setup([900]);
   app.core.available = false;

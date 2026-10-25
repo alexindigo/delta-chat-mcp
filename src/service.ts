@@ -74,7 +74,7 @@ export async function startService(
     closing = true;
     if (!shutdown) {
       shutdown = (async () => {
-        await mcp?.close();
+        const transports = await Promise.allSettled([mcp?.close()]);
         chats?.close();
         const results = await Promise.allSettled([
           http.close(),
@@ -84,7 +84,7 @@ export async function startService(
         for (const signal of signals) {
           Deno.removeSignalListener(signal, onSignal);
         }
-        const failures = results.filter((result) =>
+        const failures = [...transports, ...results].filter((result) =>
           result.status === "rejected"
         );
         log.event(failures.length ? "error" : "info", "service_stopped", {
@@ -158,7 +158,7 @@ export async function startService(
         configured: account.configured,
       }),
     };
-    mcp = new McpSessions(apiKeys, () => createMcpServer(app));
+    mcp = new McpSessions(apiKeys, (signal) => createMcpServer(app, signal));
     app.mcp = mcp;
     handler = await pathfinder({
       roots: [new URL("./http/routes/", import.meta.url)],
