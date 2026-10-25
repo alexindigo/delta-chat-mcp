@@ -45,6 +45,10 @@ export class ApiKeys {
     if (result) this.registerSecrets([match[1]]);
     return result ? id : null;
   }
+  has(id: string): boolean {
+    return this.db.prepare("SELECT 1 FROM api_keys WHERE digest=?").get(id) !==
+      undefined;
+  }
   delete(id: string): void {
     this.db.prepare("DELETE FROM api_keys WHERE digest=?").run(id);
     for (const listener of [...this.#revoked]) {

@@ -16,8 +16,10 @@ import { openStateDb } from "./state/db.ts";
 import { serveHttp } from "./http/lifetime.ts";
 import { AuthState } from "./auth/state.ts";
 import { ApiKeys } from "./auth/api-keys.ts";
+import { McpSessions } from "./mcp/sessions.ts";
 
 export interface ServiceBag {
+  mcp?: Pick<McpSessions, "handleRequest">;
   auth: AuthState;
   apiKeys: ApiKeys;
   account: AccountService;
@@ -51,6 +53,7 @@ export async function startService(
   let core: CoreProcess | undefined;
   let chats: ChatsService | undefined;
   let db: ReturnType<typeof openStateDb> | undefined;
+  let mcp: McpSessions | undefined;
   const http = serveHttp(cfg.listen, (request) => {
     if (closing || !handler) {
       return Response.json({ error: "Service unavailable" }, { status: 503 });
@@ -70,6 +73,7 @@ export async function startService(
     closing = true;
     if (!shutdown) {
       shutdown = (async () => {
+        await mcp?.close();
         chats?.close();
         const results = await Promise.allSettled([
           http.close(),
@@ -129,9 +133,11 @@ export async function startService(
     const account = new AccountService(core, events);
     await account.status();
     chats = new ChatsService(core, account, events, cfg.mcp.waitMaxSeconds);
+    mcp = new McpSessions(apiKeys);
     const app: ServiceBag = {
       auth,
       apiKeys,
+      mcp,
       account,
       contacts: new ContactsService(core, account),
       rooms: new RoomsService(core, account),
