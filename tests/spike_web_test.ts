@@ -5,7 +5,14 @@ import { deadline, fixture, lanAddress, poll } from "./support.ts";
 
 async function buildWeb(evidence: string) {
   const child = new Deno.Command(Deno.execPath(), {
-    args: ["task", "build:web"],
+    args: [
+      "run",
+      "-A",
+      "npm:vite@8.3.5",
+      "build",
+      "--config",
+      "tests/fixtures/counter.vite.ts",
+    ],
     stdout: "piped",
     stderr: "piped",
   }).spawn();
@@ -40,7 +47,7 @@ Deno.test("Solid 2 native build renders and reacts 0 → 1 in insecure non-loopb
     prefix: "web-",
   });
   await buildWeb(evidence);
-  const dist = new URL("../web/dist/", import.meta.url);
+  const dist = new URL("../artifacts/m0/counter-dist/", import.meta.url);
   assert((await Deno.stat(new URL("index.html", dist))).isFile);
   const address = lanAddress();
   const requests: string[] = [];

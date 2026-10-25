@@ -4,7 +4,7 @@ import solid from "@solidjs/vite-plugin";
 
 export default defineConfig({
   root: "web",
-  base: "./",
+  base: "/",
   plugins: [solid({ compiler: "native", hot: false })],
   build: { outDir: "dist" },
 });
