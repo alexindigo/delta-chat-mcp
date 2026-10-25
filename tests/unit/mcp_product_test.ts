@@ -25,6 +25,7 @@ Deno.test("product official SDK exposes tools and sanitized identity status over
   try {
     await deadline(client.connect(transport));
     const names = (await client.listTools()).tools.map((tool) => tool.name);
+    assertEquals(names.length, 9);
     for (
       const name of [
         "status",
@@ -32,6 +33,10 @@ Deno.test("product official SDK exposes tools and sanitized identity status over
         "list_chats",
         "read_messages",
         "message_status",
+        "wait_for_messages",
+        "send_message",
+        "delete_messages",
+        "create_room",
       ]
     ) assert(names.includes(name));
     const result = await client.callTool({ name: "status", arguments: {} });

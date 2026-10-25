@@ -7,6 +7,9 @@ import { listChats } from "./tools/list_chats.ts";
 import { readMessages } from "./tools/read_messages.ts";
 import { messageStatus } from "./tools/message_status.ts";
 import { waitForMessages } from "./tools/wait_for_messages.ts";
+import { sendMessage } from "./tools/send_message.ts";
+import { deleteMessages } from "./tools/delete_messages.ts";
+import { createRoom } from "./tools/create_room.ts";
 
 export function createMcpServer(
   services?: ServiceBag,
@@ -23,6 +26,9 @@ export function createMcpServer(
     readMessages(server, services);
     messageStatus(server, services);
     waitForMessages(server, services, lifetime);
+    sendMessage(server, services);
+    deleteMessages(server, services);
+    createRoom(server, services);
   }
   return server;
 }
