@@ -46,6 +46,7 @@ export function loadConfig(options: {
   env?: Record<string, string>;
   defaultsPath?: string | URL;
   authState?: Tree;
+  onAuthSecretPinned?: (pinned: boolean) => void;
 } = {}): Config {
   const env = options.env ?? Deno.env.toObject();
   const result: Tree = {};
@@ -112,9 +113,12 @@ export function loadConfig(options: {
   if (options.authState) {
     merge({ auth: options.authState }, schema, result, "", false);
   }
-  if (env.DCMCP_CONFIG !== undefined) {
-    merge(file(env.DCMCP_CONFIG), schema, result, "", false);
-  }
+  const overlay = env.DCMCP_CONFIG !== undefined ? file(env.DCMCP_CONFIG) : {};
+  merge(overlay, schema, result, "", false);
+  options.onAuthSecretPinned?.(
+    env.DCMCP_AUTH_SECRETKEY !== undefined ||
+      (object(overlay.auth) && Object.hasOwn(overlay.auth, "secretkey")),
+  );
   for (const [name, raw] of Object.entries(env)) {
     if (!name.startsWith("DCMCP_") || name === "DCMCP_CONFIG") continue;
     const leaf = leaves.get(name);

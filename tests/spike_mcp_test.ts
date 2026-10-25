@@ -7,6 +7,7 @@ import {
 import { pathfinder } from "@pathfinder/pathfinder";
 import { SpikeMcp } from "../src/mcp/spike.ts";
 import { deadline, lanAddress, poll } from "./support.ts";
+import { publicAuth } from "./auth_support.ts";
 
 const roots = [new URL("../src/http/routes/", import.meta.url)];
 
@@ -17,6 +18,7 @@ Deno.test("MCP client handshakes, lists ping, calls pong and deletes its session
   const app = await pathfinder({
     roots,
     app: {
+      auth: await publicAuth(),
       mcp: {
         async handleRequest(raw: Request) {
           methods.add(raw.method);
@@ -83,6 +85,7 @@ Deno.test("MCP route passes the raw Request and streaming Response without wrapp
   const app = await pathfinder({
     roots,
     app: {
+      auth: await publicAuth(),
       mcp: {
         handleRequest(request: Request) {
           assertStrictEquals(request, raw);

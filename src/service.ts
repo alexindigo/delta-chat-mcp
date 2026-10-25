@@ -14,8 +14,12 @@ import { SendService } from "./messaging/send.ts";
 import { DeleteService } from "./messaging/delete.ts";
 import { openStateDb } from "./state/db.ts";
 import { serveHttp } from "./http/lifetime.ts";
+import { AuthState } from "./auth/state.ts";
+import { ApiKeys } from "./auth/api-keys.ts";
 
 export interface ServiceBag {
+  auth: AuthState;
+  apiKeys: ApiKeys;
   account: AccountService;
   contacts: ContactsService;
   rooms: RoomsService;
@@ -34,7 +38,7 @@ declare module "@pathfinder/pathfinder" {
 /** Reserve listener first; one owner joins rollback and every shutdown path. */
 export async function startService(
   cfg: Config,
-  options: { log?: Log; signals?: boolean } = {},
+  options: { log?: Log; signals?: boolean; secretPinned?: boolean } = {},
 ) {
   const log = options.log ??
     createLog(cfg.log.level, [
@@ -98,6 +102,19 @@ export async function startService(
     await Deno.mkdir(cfg.data.dir, { recursive: true, mode: 0o700 });
     await Deno.chmod(cfg.data.dir, 0o700);
     db = openStateDb(cfg.data.dir);
+    const auth = await AuthState.open(cfg, {
+      log,
+      secretPinned: options.secretPinned,
+      qr: (text) => {
+        if (!core) throw new Error("Core unavailable");
+        return core.use((rpc) => rpc.createQrSvg(text));
+      },
+    });
+    const apiKeys = new ApiKeys(
+      db,
+      Date.now,
+      (values) => log.registerSecrets(values),
+    );
     const events = new ChangeHub(() => log.event("warn", "listener_failed"));
     core = new CoreProcess({
       accountsDir: join(cfg.data.dir, "accounts"),
@@ -113,6 +130,8 @@ export async function startService(
     await account.status();
     chats = new ChatsService(core, account, events, cfg.mcp.waitMaxSeconds);
     const app: ServiceBag = {
+      auth,
+      apiKeys,
       account,
       contacts: new ContactsService(core, account),
       rooms: new RoomsService(core, account),

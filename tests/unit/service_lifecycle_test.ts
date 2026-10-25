@@ -139,6 +139,22 @@ Deno.test("listener collision fails before creating durable state; ready health 
   const pid = service.corePid()!;
   try {
     assert(!("auth" in service.app.cfg));
+    const enrollment = await fetch(
+      `http://${lanAddress()}:${service.addr.port}/api/auth/enroll`,
+      {
+        method: "POST",
+        headers: {
+          origin: `http://${lanAddress()}:${service.addr.port}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ username: "fixture" }),
+      },
+    );
+    assertEquals(enrollment.status, 200);
+    const qr = await enrollment.json();
+    assert(qr.uri.startsWith("otpauth://totp/"));
+    assert(qr.qr.includes("<svg"));
+    assertEquals((await service.app.account.status()).configured, false);
     Deno.kill(pid, "SIGKILL");
     await poll(() => service.app.health().core === "restarting");
     const response = await fetch(
@@ -148,7 +164,7 @@ Deno.test("listener collision fails before creating durable state; ready health 
     await poll(() => service.app.health().core === "ready", 10000);
     assert(service.corePid() !== pid);
     const mcp = await fetch(`http://${lanAddress()}:${service.addr.port}/mcp`);
-    assertEquals(mcp.status, 501);
+    assertEquals(mcp.status, 503);
     await mcp.body?.cancel();
   } finally {
     await deadline(service.close());
