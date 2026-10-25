@@ -72,7 +72,7 @@ Deno.test("built product shell performs public setup and theme interaction on in
     );
     assert(
       await page.evaluate<boolean>(
-        "document.body.textContent.includes('Messaging screens arrive in M3.')",
+        "document.body.textContent.includes('Create the relay identity first.') && !!document.querySelector('a[href=\"/identity\"]')",
       ),
     );
     await page.screenshot(`${evidence}/public-dark.png`);
@@ -82,7 +82,7 @@ Deno.test("built product shell performs public setup and theme interaction on in
       publicSetup: true,
       fonts: true,
       hitTestedTheme: true,
-      futureNavigation: true,
+      messagingNavigation: true,
       secure: false,
     });
   } finally {

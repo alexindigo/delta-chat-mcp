@@ -8,11 +8,17 @@ import type { ThemeChoice } from "../theme.ts";
 import { ThemeSwitch } from "./ThemeSwitch.tsx";
 import { AccessScreen } from "./AccessScreen.tsx";
 import { KeysScreen } from "./KeysScreen.tsx";
+import { IdentityScreen } from "./IdentityScreen.tsx";
+import { ContactsScreen } from "./ContactsScreen.tsx";
+import type { MessagingState } from "../messaging.ts";
 export function App(
   props: {
     access: AccessState;
     keys: KeysState;
     screen: Screen;
+    messaging: MessagingState;
+    routeError: string;
+    logoutConfirm: boolean;
     config: string;
     theme: ThemeChoice;
     chooseTheme: (id: ThemeChoice) => void;
@@ -92,27 +98,95 @@ export function App(
                 </For>
               </nav>
               <main class="working-sheet">
+                <Show when={props.logoutConfirm}>
+                  <section
+                    class="departure-confirm"
+                    role="alertdialog"
+                    aria-label="Discard unsaved work?"
+                  >
+                    <h2>Discard unsaved work and log out?</h2>
+                    <p>
+                      Unsent drafts, form input and an unsaved shown-once key
+                      are kept only in this page. Save them before leaving.
+                    </p>
+                    <button
+                      type="button"
+                      data-action="keep-work"
+                      onClick={() => props.actions.cancelLogout()}
+                    >
+                      Keep working
+                    </button>
+                    <button
+                      type="button"
+                      data-action="discard-logout"
+                      onClick={() => props.actions.discardLogout()}
+                    >
+                      Discard and log out
+                    </button>
+                  </section>
+                </Show>
+                <Show when={props.keys.shown && props.screen !== "keys"}>
+                  <p class="pending-key" role="status">
+                    An API key is waiting to be saved.{" "}
+                    <a href="/keys">Return to API keys</a>
+                  </p>
+                </Show>
+                <Show when={props.routeError}>
+                  <p class="error" role="alert">{props.routeError}</p>
+                </Show>
+                <Show when={props.messaging.error}>
+                  <p class="error" role="alert">
+                    {props.messaging.error}{" "}
+                    <button
+                      type="button"
+                      onClick={() => props.actions.refreshMessaging()}
+                    >
+                      Refresh messaging
+                    </button>
+                  </p>
+                </Show>
                 <Show when={props.access.error}>
                   <p role="alert" class="error">{props.access.error}</p>
                 </Show>
                 <Show
                   when={props.screen === "keys"}
                   fallback={
-                    <section class="future-screen">
-                      <h1>
-                        {props.screen === "identity"
-                          ? "Relay identity"
-                          : props.screen === "contacts"
-                          ? "Contacts"
-                          : "Chats"}
-                      </h1>
-                      <p>Messaging screens arrive in M3.</p>
-                      <p class="quiet">
-                        Use the MCP tools for messaging now. Identity creation
-                        and phone pairing will be available here.
-                      </p>
-                      <a href="/keys">Set up agent access</a>
-                    </section>
+                    <Show
+                      when={props.screen === "identity"}
+                      fallback={
+                        <Show
+                          when={props.screen === "contacts"}
+                          fallback={
+                            <section class="future-screen">
+                              <h1>
+                                {props.screen === "identity"
+                                  ? "Relay identity"
+                                  : props.screen === "contacts"
+                                  ? "Contacts"
+                                  : "Chats"}
+                              </h1>
+                              <p>Messaging screens arrive in M3.</p>
+                              <p class="quiet">
+                                Use the MCP tools for messaging now. Identity
+                                creation and phone pairing will be available
+                                here.
+                              </p>
+                              <a href="/keys">Set up agent access</a>
+                            </section>
+                          }
+                        >
+                          <ContactsScreen
+                            state={props.messaging}
+                            actions={props.actions}
+                          />
+                        </Show>
+                      }
+                    >
+                      <IdentityScreen
+                        state={props.messaging}
+                        actions={props.actions}
+                      />
+                    </Show>
                   }
                 >
                   <KeysScreen

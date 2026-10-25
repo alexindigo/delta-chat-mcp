@@ -17,6 +17,9 @@ render(() => {
       access={control.accessState()}
       keys={control.keysState()}
       screen={control.routeState().screen}
+      routeError={control.routeState().error}
+      messaging={control.messagingState()}
+      logoutConfirm={control.logoutConfirm()}
       config={control.config()}
       theme={control.theme.choice()}
       chooseTheme={(id) => control.theme.choose(id)}

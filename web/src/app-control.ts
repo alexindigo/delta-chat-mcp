@@ -7,14 +7,41 @@ import { copyText } from "./clipboard.ts";
 import { browserLocation, openCodeConfig } from "./location.ts";
 import { browserTheme } from "./theme.ts";
 import { themeControl } from "./theme-control.ts";
+import { initialMessaging, Messaging } from "./messaging.ts";
+import { BrowserEvents } from "./events.ts";
 
 export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
   const [accessState, publishAccess] = createSignal(initialAccess());
   const [keysState, publishKeys] = createSignal(initialKeys());
+  const [messagingState, publishMessaging] = createSignal(initialMessaging());
+  const [logoutConfirm, setLogoutConfirm] = createSignal(false);
+  let signedIn = false;
+  const messaging = new Messaging(
+    api,
+    new BrowserEvents(),
+    publishMessaging,
+    () => {
+      void access.refresh();
+    },
+    (id) => page.navigate(`/chats/${id}`),
+    copyText,
+  );
+  const dirty = () =>
+    messaging.dirty || !!keys.state.shown || !!keys.state.name ||
+    keys.state.busy || !!access.state.password || !!access.state.code;
+  page.protect(dirty);
+  const logout = () => {
+    setLogoutConfirm(false);
+    keys.clear();
+    messaging.stop(true);
+    signedIn = false;
+    void access.logout();
+  };
   const [routeState, publishRoute] = createSignal(page.current);
   const offRoute = page.subscribe((value) => {
     publishRoute(value);
+    messaging.select(value.screen === "chats" ? value.chatId : null);
     if (
       value.screen === "keys" && access.state.session?.authenticated &&
       access.state.session.mode !== "public"
@@ -24,7 +51,16 @@ export function appControl() {
     void access.refresh();
   });
   const access = new Access(api, publishAccess, (session) => {
-    keys.clear();
+    if (session.authenticated && !session.setupRequired) {
+      signedIn = true;
+      messaging.select(
+        page.current.screen === "chats" ? page.current.chatId : null,
+      );
+      messaging.start();
+    } else if (signedIn) {
+      signedIn = false;
+      messaging.stop();
+    }
     if (
       session.authenticated && session.mode !== "public" &&
       page.screen === "keys"
@@ -36,6 +72,7 @@ export function appControl() {
       keys.clear();
       offRoute();
       page.close();
+      messaging.stop(true);
       theme.close();
     };
   });
@@ -43,6 +80,8 @@ export function appControl() {
     accessState,
     keysState,
     routeState,
+    messagingState,
+    logoutConfirm,
     page,
     theme: themeControl(theme),
     config: () =>
@@ -61,8 +100,43 @@ export function appControl() {
         void access.submit();
       },
       logout: () => {
-        keys.clear();
-        void access.logout();
+        if (dirty()) setLogoutConfirm(true);
+        else logout();
+      },
+      cancelLogout: () => setLogoutConfirm(false),
+      discardLogout: logout,
+      identityField: (name: "relay" | "displayName", value: string) =>
+        messaging.identityField(name, value),
+      createIdentity: () => {
+        void messaging.create();
+      },
+      invitation: (value: string) => messaging.link(value),
+      joinContact: () => {
+        void messaging.join();
+      },
+      openContact: (id: number) => {
+        void messaging.open(id);
+      },
+      requestContact: (id: number, action: "accept" | "block") => {
+        void messaging.request(id, action);
+      },
+      copyInvite: () => {
+        void messaging.copyInvite();
+      },
+      refreshMessaging: () => {
+        void messaging.refresh();
+      },
+      draft: (value: string) => messaging.draft(value),
+      send: () => {
+        void messaging.send();
+      },
+      earlier: () => {
+        void messaging.earlier();
+      },
+      toggleMessage: (id: number) => messaging.toggle(id),
+      confirmMessageDelete: (value: boolean) => messaging.confirm(value),
+      deleteMessages: () => {
+        void messaging.remove();
       },
       keyName: (value: string) => keys.name(value),
       createKey: () => {

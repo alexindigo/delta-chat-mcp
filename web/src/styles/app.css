@@ -448,3 +448,136 @@ td:last-child {
     animation: none;
   }
 }
+
+/* Messaging working objects share the existing relay desk geometry. */
+textarea {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: var(--ink);
+  background: var(--desk);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  resize: vertical;
+}
+.machine {
+  font: 0.8125rem/1.6 var(--code-font);
+  overflow-wrap: anywhere;
+}
+.identity-form {
+  max-width: 560px;
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+}
+.identity-form input {
+  margin-bottom: 12px;
+}
+.identity-form button {
+  justify-self: start;
+}
+.identity-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px 24px;
+  margin: 24px 0 32px;
+}
+.identity-facts dt {
+  color: var(--quiet);
+}
+.identity-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.invite-panel {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+.invite-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+.invite-qr {
+  padding: 16px;
+  background: var(--qr-paper);
+  width: fit-content;
+}
+.invite-qr img {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+}
+.invite-link textarea {
+  font: 0.8125rem/1.6 var(--code-font);
+  overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.contact-join,
+.contact-requests,
+.contact-list {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+  margin-top: 32px;
+}
+.contact-join form {
+  display: grid;
+  gap: 8px;
+}
+.contact-join button {
+  justify-self: start;
+}
+.contact-address {
+  max-width: 34ch;
+  color: var(--quiet);
+}
+.request-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.request-row p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.request-actions {
+  display: flex;
+  gap: 8px;
+}
+.departure-confirm {
+  border: 2px solid var(--accent);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.departure-confirm button {
+  margin: 0 8px 8px 0;
+}
+.pending-key {
+  border-left: 3px solid var(--accent);
+  padding: 12px;
+  background: var(--desk);
+}
+@media (max-width: 900px) {
+  .invite-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .identity-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .identity-facts dd {
+    margin-bottom: 12px;
+  }
+  .request-row {
+    flex-wrap: wrap;
+  }
+}
