@@ -1,0 +1,17 @@
+# Shipped defaults. Override single leaves in DCMCP_CONFIG or DCMCP_*.
+[listen]
+hostname = "0.0.0.0" # DCMCP_LISTEN_HOSTNAME: all LAN interfaces
+port = 8080 # DCMCP_LISTEN_PORT: HTTP port
+[data]
+dir = "./data" # DCMCP_DATA_DIR: identity and service state
+[mcp]
+waitMaxSeconds = 600 # DCMCP_MCP_WAITMAXSECONDS: maximum bounded wait
+[log]
+level = "info" # DCMCP_LOG_LEVEL: debug/info/warn/error
+[auth]
+type = "" # DCMCP_AUTH_TYPE: empty = setup required, public/password/totp
+username = "" # DCMCP_AUTH_USERNAME: one login identity
+password = "" # DCMCP_AUTH_PASSWORD: environment override or stored PBKDF2 hash
+totpkey = "" # DCMCP_AUTH_TOTPKEY: enrollment key
+secretkey = "" # DCMCP_AUTH_SECRETKEY: browser signing key
+sessionexpirydays = 30 # DCMCP_AUTH_SESSIONEXPIRYDAYS: cookie lifetime
