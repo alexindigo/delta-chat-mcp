@@ -13,15 +13,15 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
     );
     assertEquals(
       first.prepare("SELECT version FROM schema_version").get()?.version,
-      1,
+      2,
     );
-    // Fixture-owned table: no production message or agent state is introduced.
-    first.exec(
-      "CREATE TABLE spike_value (id INTEGER PRIMARY KEY, value TEXT NOT NULL) STRICT",
-    );
-    first.prepare("INSERT INTO spike_value (id, value) VALUES (?, ?)").run(
-      1,
+    // Persist real service-owned metadata; no fixture message table is needed.
+    first.prepare(
+      "INSERT INTO api_keys (digest, name, created_at) VALUES (?, ?, ?)",
+    ).run(
+      "0".repeat(64),
       "survives close",
+      1000,
     );
   } finally {
     first.close();
@@ -30,8 +30,10 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
   const reopened = openStateDb(dir);
   try {
     assertEquals(
-      reopened.prepare("SELECT value FROM spike_value WHERE id = ?").get(1)
-        ?.value,
+      reopened.prepare("SELECT name FROM api_keys WHERE digest = ?").get(
+        "0".repeat(64),
+      )
+        ?.name,
       "survives close",
     );
     assertEquals(
@@ -41,13 +43,19 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
     );
     assertEquals(
       reopened.prepare("SELECT version FROM schema_version").get()?.version,
-      1,
+      2,
     );
     assertEquals(
       reopened.prepare("PRAGMA journal_mode").get()?.journal_mode,
       "wal",
     );
-    console.log(`disk row=survives close; schema=1; WAL; ${dir}/app.sqlite`);
+    assertEquals(
+      reopened.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+      ).all().map((row) => row.name),
+      ["api_keys", "schema_version"],
+    );
+    console.log(`disk row=survives close; schema=2; WAL; ${dir}/app.sqlite`);
   } finally {
     reopened.close();
   }
