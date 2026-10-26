@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import type { MessagingApi } from "./messaging-types.ts";
 import type { RelayApi } from "./relays.ts";
+import {
+  readRoomOutcome,
+  type RoomOutcome,
+} from "../../src/messaging/room-outcome.ts";
+import type { RoomApi } from "./rooms.ts";
 export type AccessMode = "public" | "password" | "totp";
 export interface Session {
   setupRequired: boolean;
@@ -26,7 +31,11 @@ export interface NewKey {
   key: string;
 }
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly room?: RoomOutcome,
+  ) {
     super(message);
   }
 }
@@ -44,7 +53,7 @@ export interface Api {
 export function messageImageUrl(id: number, attempt: number): string {
   return `/api/messages/${id}/image${attempt ? `?retry=${attempt}` : ""}`;
 }
-export function browserApi(): Api & MessagingApi & RelayApi {
+export function browserApi(): Api & MessagingApi & RelayApi & RoomApi {
   async function request<T>(
     path: string,
     method = "GET",
@@ -72,15 +81,21 @@ export function browserApi(): Api & MessagingApi & RelayApi {
     }
     if (!response.ok) {
       let message = "Request failed. Try again.";
+      let room: RoomOutcome | undefined;
       try {
         const value = await response.json();
         if (typeof value.error === "string") message = value.error;
+        room = readRoomOutcome(value.room);
       } catch { /* No raw HTML or stack traces in the view. */ }
-      throw new ApiError(response.status, message);
+      throw new ApiError(response.status, message, room);
     }
     return response.status === 204 ? undefined as T : await response.json();
   }
   return {
+    createRoom: (name, contactIds) =>
+      request("/api/rooms", "POST", { name, contactIds }),
+    completeRoom: (id, contactIds) =>
+      request(`/api/rooms/${id}/complete`, "POST", { contactIds }),
     relays: () => request("/api/relays"),
     refreshRelays: () => request("/api/relays", "POST"),
     account: () => request("/api/account"),

@@ -12,6 +12,7 @@ import { BrowserEvents } from "./events.ts";
 import { historyViewport, Presentation } from "./presentation.ts";
 import { initialRelays, Relays } from "./relays.ts";
 import { setupProgress } from "./onboarding.ts";
+import { initialRoom, Rooms } from "./rooms.ts";
 
 export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
@@ -20,6 +21,7 @@ export function appControl() {
   const [messagingState, publishMessaging] = createSignal(initialMessaging());
   const [logoutConfirm, setLogoutConfirm] = createSignal(false);
   const [relayState, publishRelays] = createSignal(initialRelays());
+  const [roomState, publishRoom] = createSignal(initialRoom());
   const relays = new Relays(api, publishRelays);
   const progress = () =>
     setupProgress(
@@ -53,8 +55,25 @@ export function appControl() {
     copyText,
   );
   const presentation = new Presentation((ids) => messaging.presented(ids));
+  const rooms = new Rooms(
+    api,
+    publishRoom,
+    (id) => page.navigate(`/chats/${id}`),
+    () => messaging.refresh(),
+    () => {
+      void access.refresh();
+    },
+  );
+  // Composition arbitrates presentation; suspension never clears controller memory.
+  const activeDialog = () =>
+    keysState().shown
+      ? "key" as const
+      : roomState().open
+      ? "room" as const
+      : null;
   const dirty = () =>
-    messaging.dirty || (!messaging.state.account?.configured && relays.dirty) ||
+    rooms.dirty || messaging.dirty ||
+    (!messaging.state.account?.configured && relays.dirty) ||
     !!keys.state.shown ||
     !!keys.state.name ||
     keys.state.busy || !!access.state.password || !!access.state.code;
@@ -62,6 +81,7 @@ export function appControl() {
   const logout = () => {
     setLogoutConfirm(false);
     keys.clear();
+    rooms.clear();
     relays.clear();
     messaging.stop(true);
     signedIn = false;
@@ -105,6 +125,7 @@ export function appControl() {
     void access.refresh();
     return () => {
       keys.clear();
+      rooms.clear();
       offRoute();
       page.close();
       messaging.stop(true);
@@ -118,6 +139,8 @@ export function appControl() {
     routeState,
     messagingState,
     relayState,
+    roomState,
+    activeDialog,
     relayOptions: () => {
       relayState();
       return relays.options;
@@ -130,6 +153,26 @@ export function appControl() {
     config: () =>
       openCodeConfig(page.origin, accessState().session?.mode === "public"),
     actions: {
+      newRoom: () => {
+        if (!activeDialog()) rooms.open();
+      },
+      closeRoom: () => rooms.close(),
+      roomName: (value: string) => rooms.name(value),
+      roomToggle: (id: number) => rooms.toggle(id),
+      createRoom: () => {
+        void rooms.submit();
+      },
+      completeRoom: () => {
+        void rooms.complete();
+      },
+      inspectRoom: () => rooms.inspect(),
+      inspectConversations: () => {
+        rooms.close();
+        page.navigate("/chats");
+        void messaging.refresh();
+      },
+      anotherRoom: () => rooms.createAnother(),
+      discardRoom: () => rooms.discard(),
       refresh: () => {
         void access.refresh();
       },

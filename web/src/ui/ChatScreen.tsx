@@ -4,6 +4,7 @@ import type { MessagingState } from "../messaging.ts";
 import type { AppControl } from "../app-control.ts";
 import { messageTime, sender } from "../presentation.ts";
 import { MessageItem } from "./MessageItem.tsx";
+import { NewRoom } from "./NewRoom.tsx";
 function History(
   props: { state: MessagingState; actions: AppControl["actions"] },
 ) {
@@ -60,11 +61,25 @@ function History(
   );
 }
 export function ChatScreen(
-  props: { state: MessagingState; actions: AppControl["actions"] },
+  props: {
+    state: MessagingState;
+    roomDisabled: boolean;
+    actions: AppControl["actions"];
+  },
 ) {
   return (
-    <section class="chats-screen">
-      <h1>Chats</h1>
+    <section class={`chats-screen ${props.state.chatId ? "has-chat" : ""}`}>
+      <div class="chats-heading">
+        <h1>Chats</h1>
+        <Show when={props.state.account?.configured}>
+          <div class="narrow-room-entry">
+            <NewRoom
+              disabled={props.roomDisabled}
+              open={props.actions.newRoom}
+            />
+          </div>
+        </Show>
+      </div>
       <Show
         when={props.state.account?.configured}
         fallback={
@@ -77,10 +92,13 @@ export function ChatScreen(
         <div class={`chat-desk ${props.state.chatId ? "chat-selected" : ""}`}>
           <aside class="chat-index">
             <header class="chat-index-header">
-              <h2>Conversations</h2>
-              <span class="quiet">
-                Rooms created by your agent appear here.
-              </span>
+              <div class="conversation-actions">
+                <h2>Conversations</h2>
+                <NewRoom
+                  disabled={props.roomDisabled}
+                  open={props.actions.newRoom}
+                />
+              </div>
             </header>
             <div class="chat-items">
               <Show
@@ -158,6 +176,15 @@ export function ChatScreen(
             >
               <History state={props.state} actions={props.actions} />
               <div class="composer-row">
+                <Show
+                  when={props.state.chat?.type === "Group" &&
+                    props.state.chat.isUnpromoted}
+                >
+                  <p class="quiet" data-room-first-message>
+                    The first message distributes this room to its contacts.
+                    Creating it has not delivered it to peers.
+                  </p>
+                </Show>
                 <Show when={props.state.chat?.isContactRequest}>
                   <p>
                     This is a contact request.{" "}

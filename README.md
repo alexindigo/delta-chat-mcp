@@ -3,9 +3,9 @@
 A LAN service with its own Delta Chat identity, exposed through MCP and a small
 web UI. The backend owns the core process independently of connected clients.
 The web UI provides access setup, login, API keys, identity setup, contact
-pairing, live conversations and a text composer; `/mcp` provides nine messaging
-tools. The native compiler counter and ping transport are isolated integration
-fixtures.
+pairing, room creation, live conversations and a text composer; `/mcp` provides
+nine messaging tools. The native compiler counter and ping transport are
+isolated integration fixtures.
 
 ## Deploy
 
@@ -109,12 +109,18 @@ its process and typed RPC client. Shared messaging services own account,
 contact, chat, send/delete and read-receipt workflows. Thin MCP adapters call
 those services. App state is separate from message history. No cursor or message
 journal is maintained. Views render state and forward intents; plain TypeScript
-controllers own access, keys, messaging and ephemeral drafts, with one owner
-each for HTTP, live invalidations, message visibility, theme/storage, browser
-location/history and clipboard. Bundled fonts require no CDN. System/Light/Dark
-selection persists as the choice ID; System follows live OS changes, with a
-pre-stylesheet head bootstrap to prevent a wrong-theme flash. Copying has a
-plain-HTTP fallback.
+controllers own access, keys, messaging, room setup and ephemeral drafts, with
+one owner each for HTTP, live invalidations, message visibility, theme/storage,
+browser location/history and clipboard. Bundled fonts require no CDN.
+System/Light/Dark selection persists as the choice ID; System follows live OS
+changes, with a pre-stylesheet head bootstrap to prevent a wrong-theme flash.
+Copying has a plain-HTTP fallback.
+
+Shared room setup validates the whole intended contact set before allocation and
+verifies canonical encrypted Group/SELF/member facts afterward. Browser cookie
+routes (`POST /api/rooms` and `POST /api/rooms/:id/complete`) and MCP use this
+same service. Native Dialog owns DOM/focus only; app composition gives a
+shown-once key priority over an open room form without clearing its draft.
 
 The desk uses the default Globnotes Light/Dark pair with derived readable text
 and control roles; [palette provenance](docs/palette.md) records the source and
@@ -149,17 +155,36 @@ join them. Email addresses alone are not pairing invitations. Contacts show the
 current core's **Key contact** and **Encryption available** state, and incoming
 requests offer **Accept** or **Block**.
 
-Use a contact's **Chat** action or choose a conversation in **Chats**.
-Agent-created rooms appear live; browser room creation is outside this version.
-History pages load upwards. Enter sends, Shift+Enter adds a line; delivery/read
-status comes from core. Downloaded core JPEG/PNG/WebP images, GIFs and eligible
-stickers render inline with their caption and filename. Other attachments retain
-their filename fallback; partial, failed and undecipherable downloads show their
-actual state without automatically downloading. A broken image retains its
-message and offers up to two explicit retries. Selected deletion is explicit and
-local to this identity. GET inspection does not mark messages seen; only
-messages presented in the visible conversation send browser read receipts.
-Reading in either interface leaves the same history available to the other.
+Use a contact's **Chat** action or choose a conversation in **Chats**. Choose
+**New room** beside Conversations (beside Chats on a narrow selected
+conversation), enter a name and select actual contacts. Zero selected contacts
+means **Only this identity**; one peer still creates a Group, not a direct chat.
+Every selected contact must still be unblocked, a key contact, and available for
+encryption when submitted. Creating a room does not deliver it to peers: the
+first message distributes it. The explanation follows actual core promotion
+metadata, not empty history.
+
+If adding contacts or verification fails after allocation, the actual room ID
+and intended selection are kept. **Retry adding contacts** explicitly completes
+that same unpromoted room, adding only missing contacts. **Open room** inspects
+it. A distributed room or one this identity left cannot be completed through
+setup. Dismissing setup keeps the actual room. If creation was not acknowledged,
+a room may exist: inspect refreshed Conversations before deliberately choosing
+**Create another room (may duplicate)**. Ordinary Create stays disabled; there
+is no blind retry, persistent setup journal, or automatic deletion. Close/Escape
+keeps the form and recovery state in page memory across navigation; explicit
+discard/logout/document-departure protection includes this draft.
+
+Agent-created rooms also appear live. History pages load upwards. Enter sends,
+Shift+Enter adds a line; delivery/read status comes from core. Downloaded core
+JPEG/PNG/WebP images, GIFs and eligible stickers render inline with their
+caption and filename. Other attachments retain their filename fallback; partial,
+failed and undecipherable downloads show their actual state without
+automatically downloading. A broken image retains its message and offers up to
+two explicit retries. Selected deletion is explicit and local to this identity.
+GET inspection does not mark messages seen; only messages presented in the
+visible conversation send browser read receipts. Reading in either interface
+leaves the same history available to the other.
 
 Private image bytes use cookie-authenticated `GET /api/messages/:id/image`,
 never raw blob paths or filename URLs. Core metadata and delivery share one
@@ -221,38 +246,46 @@ it afterwards; receiving messages continues independently. MCP accepts only the
 Bearer credential, never the web cookie. Session IDs are routing state, not
 keys.
 
-| Tool                | Purpose                                                                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`            | Identity address/display name, configuration and connectivity                                                                                |
-| `list_contacts`     | Actual `keyContact` and `encryptionAvailable` state; no obsolete verified flag                                                               |
-| `list_chats`        | All chats/rooms/contact requests, member IDs and last message ID/time                                                                        |
-| `read_messages`     | Core history oldest→newest; `chat_id`, `after_id` OR `before_id`, default20/max100                                                           |
-| `wait_for_messages` | Newer messages or an empty `timedOut:true` result; default120 seconds bounded by `mcp.waitMaxSeconds`; client cancellation releases the wait |
-| `send_message`      | Exact text to `chat_id` OR `contact_id`                                                                                                      |
-| `message_status`    | Batch delivery/read/not-found state                                                                                                          |
-| `delete_messages`   | Explicit local-only deletion, never for everyone                                                                                             |
-| `create_room`       | Named room with selected `contact_ids`; send its first text to deliver it to peers                                                           |
+| Tool                | Purpose                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`            | Identity address/display name, configuration and connectivity                                                                                     |
+| `list_contacts`     | Actual `keyContact` and `encryptionAvailable` state; no obsolete verified flag                                                                    |
+| `list_chats`        | All chats/rooms/contact requests, member IDs and last message ID/time                                                                             |
+| `read_messages`     | Core history oldest→newest; `chat_id`, `after_id` OR `before_id`, default20/max100                                                                |
+| `wait_for_messages` | Newer messages or an empty `timedOut:true` result; default120 seconds bounded by `mcp.waitMaxSeconds`; client cancellation releases the wait      |
+| `send_message`      | Exact text to `chat_id` OR `contact_id`                                                                                                           |
+| `message_status`    | Batch delivery/read/not-found state                                                                                                               |
+| `delete_messages`   | Explicit local-only deletion, never for everyone                                                                                                  |
+| `create_room`       | Named room with selected `contact_ids`; send its first text to deliver it to peers; optional `resume_chat_id` completes that same unpromoted room |
 
 Every successful tool result contains JSON text plus matching
 `structuredContent`. Failures expose sanitized reasons rather than backend
-errors or filesystem paths. Reading/waiting mark **only returned incoming
-messages** seen and send read receipts. Reading never deletes. Remember the last
-returned ID in the agent session and pass it explicitly; a deleted/unknown
-anchor is an error, never an implicit restart from the beginning. A fresh agent
-session can create a fresh room. No cursor, journal, whitelist or persistent
-per-agent state is added.
+errors or filesystem paths. Room failures additionally return safe structured
+`room` facts: `rejected` before allocation, `incomplete` with known `chatId`,
+intended/missing contact IDs (null means membership could not be read), and
+`completionStopped`, or `uncertain` with no invented ID. Successful
+`create_room` results remain `{chat_id}` and the tool count remains nine.
+Reading/waiting mark **only returned incoming messages** seen and send read
+receipts. Reading never deletes. Remember the last returned ID in the agent
+session and pass it explicitly; a deleted/unknown anchor is an error, never an
+implicit restart from the beginning. A fresh agent session can create a fresh
+room. No cursor, journal, whitelist or persistent per-agent state is added.
 
 The separate online suite uses private throwaway fixtures, the official MCP SDK
 over LAN HTTP, real A/B/C relay peers and headless Chromium on
 `http://delta-chat-mcp.test`. It proves receiving consumers, encrypted room
 first text, delayed/already-present/timeout/aborted waits, peer read receipts,
 reconnect history, durable local deletion, revocation of initialized sessions
-and shutdown. Browser checks complete Public/Password/TOTP setup and
-login/logout, paste a copied key into a real browser field, use/revoke that key
-through MCP, exercise all three themes/live OS/storage errors/keyboard, and
-compare head bootstrap timing to the browser's first paint. Only final full
-Login/Keys light/dark screenshots are deliverables; private region-review
-captures remain artifacts.
+and shutdown. Browser-created rooms are checked through actual pointer/name/two
+paired contacts, canonical Group/SELF/membership/URL, first text decrypted by
+both intended stock peers, and a peer reply visible in browser and MCP history.
+Native form checks cover recovery, uncertainty, retained drafts, key-modal
+priority, checkbox/action geometry, and departure/logout epochs. Browser checks
+complete Public/Password/TOTP setup and login/logout, paste a copied key into a
+real browser field, use/revoke that key through MCP, exercise all three
+themes/live OS/storage errors/keyboard, and compare head bootstrap timing to the
+browser's first paint. Only final full Login/Keys/Room light/dark screenshots
+are deliverables; private region-review captures remain artifacts.
 
 The service is intended for plain HTTP on the LAN. Cookies and API keys will
 travel unencrypted on that LAN; it is not intended for public exposure.

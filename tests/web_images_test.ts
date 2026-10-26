@@ -157,6 +157,8 @@ Deno.test("native media consumer decodes four rasters, keeps named failures, bou
       freshMessageCount: 0,
       contactIds: [9],
       canSend: true,
+      isUnpromoted: false,
+      selfInGroup: true,
     };
     const second = messages.slice(0, 60).map((m, i) => ({
       ...m,

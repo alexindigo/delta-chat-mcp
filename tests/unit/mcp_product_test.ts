@@ -8,6 +8,7 @@ import { startService } from "../../src/service.ts";
 import { loadRuntimeConfig } from "../../src/auth/state.ts";
 import { createLog } from "../../src/log.ts";
 import { deadline, fixture, lanAddress } from "../support.ts";
+import { RoomSetupError } from "../../src/messaging/room-outcome.ts";
 
 Deno.test("product official SDK exposes tools and sanitized identity status over the composed LAN service", async () => {
   const { cfg } = loadRuntimeConfig({
@@ -66,6 +67,39 @@ Deno.test("product official SDK exposes tools and sanitized identity status over
       text: JSON.stringify(failed.structuredContent),
     }]);
     assert(!JSON.stringify(failed).includes(cfg.data.dir));
+    const roomCalls: unknown[] = [];
+    service.app.rooms.createRoom = (name, ids) => {
+      roomCalls.push(["create", name, ids]);
+      return Promise.resolve({ chatId: 99 });
+    };
+    service.app.rooms.completeRoom = (id, ids) => {
+      roomCalls.push(["complete", id, ids]);
+      return Promise.resolve({ chatId: id });
+    };
+    const created = await client.callTool({
+      name: "create_room",
+      arguments: { name: "Room", contact_ids: [] },
+    });
+    assertEquals(created.structuredContent, { chat_id: 99 });
+    const resumed = await client.callTool({
+      name: "create_room",
+      arguments: { name: "Room", contact_ids: [42], resume_chat_id: 99 },
+    });
+    assertEquals(resumed.structuredContent, { chat_id: 99 });
+    assertEquals(roomCalls, [["create", "Room", []], ["complete", 99, [42]]]);
+    service.app.rooms.createRoom = () =>
+      Promise.reject(
+        new RoomSetupError({ kind: "uncertain", message: "A room may exist" }),
+      );
+    const uncertain = await client.callTool({
+      name: "create_room",
+      arguments: { name: "Room", contact_ids: [] },
+    });
+    assert(uncertain.isError);
+    assertEquals(uncertain.structuredContent, {
+      error: "uncertain",
+      room: { kind: "uncertain", message: "A room may exist" },
+    });
     await transport.terminateSession();
   } finally {
     await client.close();

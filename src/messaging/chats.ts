@@ -77,6 +77,8 @@ export class ChatsService {
         contactIds: chat.contactIds,
         freshMessageCount: chat.freshMessageCounter,
         canSend: chat.canSend,
+        isUnpromoted: chat.isUnpromoted,
+        selfInGroup: chat.selfInGroup,
       };
     });
   }

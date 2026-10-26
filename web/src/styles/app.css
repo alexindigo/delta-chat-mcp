@@ -792,7 +792,7 @@ textarea {
   }
 }
 
-.key-handoff {
+.native-dialog {
   width: min(560px, calc(100% - 32px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
@@ -803,7 +803,7 @@ textarea {
   border: 2px solid var(--accent);
   border-radius: var(--sheet-radius);
 }
-.key-handoff::backdrop {
+.native-dialog::backdrop {
   background: var(--modal-veil);
   backdrop-filter: blur(6px);
 }
@@ -920,4 +920,77 @@ textarea {
 }
 .message-media .image-retry {
   font-size: var(--text-small);
+}
+
+.chats-heading,
+.conversation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chats-heading h1,
+.conversation-actions h2 {
+  margin: 0;
+}
+.conversation-actions {
+  flex-wrap: wrap;
+}
+.conversation-actions button {
+  flex-shrink: 0;
+}
+.narrow-room-entry {
+  display: none;
+}
+.room-form {
+  display: grid;
+  gap: 12px;
+}
+.room-form > label {
+  margin: 0;
+}
+.room-members {
+  border: 0;
+  margin: 8px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+.room-members legend {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.room-contact {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.room-contact input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.room-contact-text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.room-contact-text > span {
+  color: var(--quiet);
+  font-size: var(--text-small);
+}
+.room-actions {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+@media (max-width: 700px) {
+  .has-chat .narrow-room-entry {
+    display: block;
+  }
 }

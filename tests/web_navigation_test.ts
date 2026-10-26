@@ -38,6 +38,11 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     await type(browser, "#username", "operator");
     await type(browser, "#password", "private-navigation-fixture");
     await click(browser, '[data-action="access-submit"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('#key-name') && !document.querySelector('#key-name').disabled",
+      )
+    );
     await type(browser, "#key-name", "Navigation fixture");
     await click(browser, '[data-action="create-key"]');
     await poll(() =>
@@ -138,6 +143,11 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     );
     await click(browser, '[data-action="dismiss-key"]');
     await click(browser, 'a[href="/keys"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('#key-name') && !document.querySelector('#key-name').disabled",
+      )
+    );
     await click(browser, "#key-name");
     await key(browser, "v", 2);
     assertEquals(
@@ -214,7 +224,7 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     await click(browser, 'a[href="/keys"]');
     await poll(() =>
       browser.evaluate<boolean>(
-        "!document.querySelector('#key-name')?.disabled",
+        "!!document.querySelector('#key-name') && !document.querySelector('#key-name').disabled",
       )
     );
     await type(browser, "#key-name", "Late credential");

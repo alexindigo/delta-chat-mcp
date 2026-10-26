@@ -6,6 +6,7 @@ import { IdentityRequired } from "../messaging/account.ts";
 import { UnknownMessageAnchor } from "../messaging/chats.ts";
 import { MessageLoadError } from "../messaging/load.ts";
 import { AttachmentError } from "../messaging/attachments.ts";
+import { RoomSetupError } from "../messaging/room-outcome.ts";
 
 export const id = z.coerce.number().int().positive().max(
   Number.MAX_SAFE_INTEGER,
@@ -43,6 +44,12 @@ export function messagingRoute(
         ? value
         : Response.json(value, { headers: { "cache-control": "no-store" } });
     } catch (error) {
+      if (error instanceof RoomSetupError) {
+        return Response.json({ error: error.message, room: error.outcome }, {
+          status: 409,
+          headers: { "cache-control": "no-store" },
+        });
+      }
       let status = 400,
         message = "Messaging request failed. Check the input and retry.";
       if (error instanceof InputError) message = "Invalid messaging input";

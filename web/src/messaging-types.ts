@@ -42,6 +42,8 @@ export interface ChatDetail {
   freshMessageCount: number;
   contactIds: number[];
   canSend: boolean;
+  isUnpromoted: boolean;
+  selfInGroup: boolean;
 }
 export interface Message {
   id: number;

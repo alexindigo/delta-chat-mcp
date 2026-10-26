@@ -22,7 +22,7 @@ async function resolved(page: Cdp, dark: boolean) {
   const expected = dark ? "rgb(34, 38, 44)" : "rgb(255, 255, 255)";
   await poll(() =>
     page.evaluate<boolean>(
-      `getComputedStyle(document.documentElement).backgroundColor===${
+      `document.documentElement instanceof Element && getComputedStyle(document.documentElement).backgroundColor===${
         JSON.stringify(expected)
       }`,
     )

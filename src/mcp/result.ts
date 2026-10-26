@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+import { RoomSetupError } from "../messaging/room-outcome.ts";
 export async function toolResult(
   action: () => Promise<Record<string, unknown>>,
 ) {
@@ -20,7 +21,9 @@ export async function toolResult(
       : name === "AbortError"
       ? "cancelled"
       : "request_failed";
-    const structuredContent = { error: reason };
+    const structuredContent = error instanceof RoomSetupError
+      ? { error: error.outcome.kind, room: error.outcome }
+      : { error: reason };
     return {
       isError: true,
       content: [{

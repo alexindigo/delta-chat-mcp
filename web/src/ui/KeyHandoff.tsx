@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { onSettled, Show } from "solid-js";
+import { Show } from "solid-js";
+import { Dialog } from "./Dialog.tsx";
 
 /** Owns only its native modal DOM/focus. The caller owns the once-only value. */
 export function KeyHandoff(props: {
@@ -10,34 +11,12 @@ export function KeyHandoff(props: {
   copy: () => void;
   acknowledge: () => void;
 }) {
-  let dialog!: HTMLDialogElement;
-  onSettled(() => {
-    dialog.showModal();
-    return () => dialog.close();
-  });
   return (
-    <dialog
-      ref={(element) => dialog = element}
+    <Dialog
       class="key-handoff"
-      aria-labelledby="key-handoff-title"
-      aria-describedby="key-handoff-help"
-      onCancel={(event) => event.preventDefault()}
-      onKeyDown={(event) => {
-        if (event.key !== "Tab") return;
-        const buttons = [
-          ...dialog.querySelectorAll<HTMLButtonElement>(
-            "button:not(:disabled)",
-          ),
-        ];
-        const first = buttons[0], last = buttons.at(-1);
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last?.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first?.focus();
-        }
-      }}
+      labelledBy="key-handoff-title"
+      describedBy="key-handoff-help"
+      cancel={() => {}}
     >
       <h2 id="key-handoff-title">Save this API key</h2>
       <p id="key-handoff-help">
@@ -73,6 +52,6 @@ export function KeyHandoff(props: {
       >
         I've saved it
       </button>
-    </dialog>
+    </Dialog>
   );
 }

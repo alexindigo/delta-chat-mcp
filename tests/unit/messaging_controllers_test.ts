@@ -57,6 +57,8 @@ function fixture() {
         freshMessageCount: 1,
         contactIds: [42],
         canSend: true,
+        isUnpromoted: false,
+        selfInGroup: true,
       }),
     messages: (id) => Promise.resolve({ messages: [message(id)] }),
     send: (id, text) => sends(id, text),

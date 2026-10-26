@@ -17,6 +17,8 @@ import type { MessagingState } from "../messaging.ts";
 import type { RelayState } from "../relays.ts";
 import type { SetupProgress } from "../onboarding.ts";
 import { SetupSteps } from "./SetupSteps.tsx";
+import type { RoomState } from "../rooms.ts";
+import { RoomDialog } from "./RoomDialog.tsx";
 export function App(
   props: {
     access: AccessState;
@@ -24,6 +26,8 @@ export function App(
     screen: Screen;
     messaging: MessagingState;
     relays: RelayState;
+    room: RoomState;
+    activeDialog: "key" | "room" | null;
     relayOptions: string[];
     progress: SetupProgress;
     waiting: boolean;
@@ -181,6 +185,7 @@ export function App(
                               >
                                 <ChatScreen
                                   state={props.messaging}
+                                  roomDisabled={!!props.activeDialog}
                                   actions={props.actions}
                                 />
                               </Show>
@@ -218,7 +223,14 @@ export function App(
       <footer class="app-footer">
         Private relay on your LAN. Plain HTTP sends credentials unencrypted.
       </footer>
-      <Show when={props.keys.shown}>
+      <Show
+        when={props.activeDialog === "key" ? props.keys.shown : null}
+        fallback={
+          <Show when={props.activeDialog === "room"}>
+            <RoomDialog state={props.room} actions={props.actions} />
+          </Show>
+        }
+      >
         {(shown) => (
           <KeyHandoff
             value={shown().key}

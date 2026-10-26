@@ -177,6 +177,7 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
   let a = await start(),
     b: Peer | undefined,
     c: Peer | undefined,
+    d: Peer | undefined,
     page: Cdp | undefined,
     client: Client | undefined;
   const facts: Record<string, unknown> = { evidence };
@@ -643,6 +644,154 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
       10000,
     );
     record("mcpRoomAppearedLive");
+    // Keep C's original blocked-request outcome and the MCP-created-room proof.
+    // A separate private stock peer supplies the second paired browser recipient.
+    d = await peer(`${root}/D`, "Room partner");
+    // Use the stock-scanner fixture contract already proved by mcp_e2e_test:
+    // completion is an actual SecurejoinJoinerProgress1000 event, not merely
+    // the chat ID returned while a fresh handshake is still establishing.
+    const dInvite = await a.app.account.inviteLink();
+    const dQr = await d.core.call((rpc) => rpc.checkQr(d!.id, dInvite));
+    assertEquals(dQr.kind, "askVerifyContact");
+    if (dQr.kind !== "askVerifyContact") {
+      throw new Error("Expected private pairing invitation");
+    }
+    await d.core.call((rpc) => rpc.secureJoin(d!.id, dInvite));
+    await poll(
+      () => Promise.resolve(d!.joined.includes(dQr.contact_id)),
+      60000,
+    );
+    let did = 0;
+    await poll(async () => {
+      const contact = (await a.app.contacts.list()).find((contact) =>
+        contact.displayName === d!.name
+      );
+      did = contact?.id ?? 0;
+      return !!contact?.isKeyContact && contact.e2eeAvail;
+    }, 60000);
+    record("secondStockPeerPairedForBrowserRoom", {
+      contactId: did,
+      completedScannerHandshake: true,
+    });
+    await poll(() =>
+      browser.evaluate<boolean>("location.pathname.startsWith('/chats/')")
+    );
+    await click(browser, '.chat-index-header [data-action="new-room"]');
+    const roomName = `Browser paired room ${Date.now()}`;
+    await type(browser, "#room-name", roomName);
+    await click(browser, `[data-room-contact="${bid}"] input`);
+    await click(browser, `[data-room-contact="${did}"] input`);
+    assertEquals(
+      await browser.evaluate(
+        "document.querySelector('[data-room-count]').textContent",
+      ),
+      "2 selected",
+    );
+    await click(browser, '[data-action="create-room"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        `!document.querySelector('.room-dialog') && document.querySelector('.conversation-header h2')?.textContent===${
+          JSON.stringify(roomName)
+        }`,
+      )
+    );
+    const browserRoomId = Number(
+      (await browser.evaluate<string>("location.pathname")).split("/").at(-1),
+    );
+    assert(browserRoomId > 0 && browserRoomId !== room.chat_id);
+    const canonicalRoom = await a.app.chats.get(browserRoomId);
+    assertEquals(canonicalRoom.type, "Group");
+    assert(
+      canonicalRoom.isEncrypted && canonicalRoom.selfInGroup &&
+        canonicalRoom.isUnpromoted,
+    );
+    assertEquals(
+      [...canonicalRoom.contactIds].sort((a, b) => a - b),
+      [1, bid, did].sort((a, b) => a - b),
+    );
+    assert(
+      await browser.evaluate<boolean>(
+        "!!document.querySelector('[data-room-first-message]')",
+      ),
+    );
+    const firstBrowserRoomText =
+      `First browser-created room text ${browserRoomId}`;
+    await type(browser, "#message-draft", firstBrowserRoomText);
+    await click(browser, '[data-action="send-message"]');
+    const bRoomMessage = await receive(b, firstBrowserRoomText),
+      dRoomMessage = await receive(d, firstBrowserRoomText);
+    assertEquals(bRoomMessage.text, firstBrowserRoomText);
+    assertEquals(dRoomMessage.text, firstBrowserRoomText);
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!document.querySelector('[data-room-first-message]')",
+      )
+    );
+    const roomReply = `Stock peer reply to browser room ${browserRoomId}`;
+    await d.core.call((rpc) =>
+      rpc.miscSendTextMessage(d!.id, dRoomMessage.chatId, roomReply)
+    );
+    await poll(
+      () =>
+        browser.evaluate<boolean>(
+          `document.querySelector('.message-history')?.textContent.includes(${
+            JSON.stringify(roomReply)
+          })`,
+        ),
+      60000,
+    );
+    const sameHistory = await tool<{ messages: Message[] }>(
+      client,
+      "read_messages",
+      { chat_id: browserRoomId, limit: 100 },
+    );
+    assert(
+      sameHistory.messages.some((message) =>
+        message.text === firstBrowserRoomText && message.encrypted
+      ),
+    );
+    assert(
+      sameHistory.messages.some((message) =>
+        message.text === roomReply && message.encrypted
+      ),
+    );
+    record(
+      "browserCreatedRoomEncryptedAtBothStockPeersAndReplyInBrowserAndMcp",
+      {
+        browserRoomId,
+        name: canonicalRoom.name,
+        type: canonicalRoom.type,
+        isEncrypted: true,
+        selfInGroup: true,
+        intendedContactIds: [bid, did],
+        actualContactIds: canonicalRoom.contactIds,
+        url: await browser.evaluate("location.pathname"),
+        bothPeersDecodedEncrypted: [
+          bRoomMessage.showPadlock,
+          dRoomMessage.showPadlock,
+        ],
+        firstBrowserRoomText,
+        roomReply,
+      },
+    );
+    for (const mode of ["light", "dark"]) {
+      await theme(browser, mode);
+      await fullShot(browser, `${evidence}/browser-created-room-${mode}.png`, [
+        ".app-header",
+        ".nav-rail",
+        ".chat-index-header",
+        ".conversation-header",
+        ".message-history",
+        ".composer-row",
+        ".app-footer",
+      ]);
+    }
+    await click(browser, `[data-chat-id="${chatId}"]`);
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('.conversation-header h2')?.textContent==='Phone fixture'",
+      )
+    );
     // Native route transitions retain independent draft revisions.
     await type(browser, "#message-draft", "Draft for the phone");
     await click(browser, `[data-chat-id="${room.chat_id}"]`);
@@ -1113,5 +1262,6 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
     await a.close();
     await b?.core.close();
     await c?.core.close();
+    await d?.core.close();
   }
 });

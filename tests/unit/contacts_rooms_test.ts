@@ -5,6 +5,7 @@ import { ContactsService } from "../../src/messaging/contacts.ts";
 import { RoomsService } from "../../src/messaging/rooms.ts";
 import { ChangeHub } from "../../src/events.ts";
 import { FakeCore } from "./fake_core.ts";
+import type { CoreContact, CoreRpc } from "../../src/core/client.ts";
 
 Deno.test("contacts expose supported encryption state, validate invites and handle requests", async () => {
   const core = new FakeCore({
@@ -84,6 +85,28 @@ Deno.test("rooms use current group creation API and add all intended members", a
     getAllAccountIds: () => Promise.resolve([7]),
     isConfigured: () => Promise.resolve(true),
     createGroupChat: () => Promise.resolve(99),
+    getContacts: () =>
+      Promise.resolve(
+        [42, 43].map((
+          id,
+        ) => ({
+          id,
+          isBlocked: false,
+          isKeyContact: true,
+          e2eeAvail: true,
+        } as CoreContact)),
+      ),
+    getFullChatById: () =>
+      Promise.resolve(
+        {
+          id: 99,
+          chatType: "Group",
+          isEncrypted: true,
+          isUnpromoted: true,
+          selfInGroup: true,
+          contactIds: [1, ...members],
+        } as Awaited<ReturnType<CoreRpc["getFullChatById"]>>,
+      ),
     addContactToChat: (_id, _chat, member) => {
       members.push(member);
       return Promise.resolve(null);
