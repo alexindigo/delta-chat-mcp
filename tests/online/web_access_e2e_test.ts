@@ -242,7 +242,7 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await click(page, '[data-action="copy-key"]');
       await poll(() =>
         page.evaluate<boolean>(
-          "document.querySelector('[role=status]')?.textContent === 'Copied.'",
+          "document.querySelector('dialog [role=status]')?.textContent === 'Key copied.'",
         )
       );
       await click(page, '[data-action="dismiss-key"]');

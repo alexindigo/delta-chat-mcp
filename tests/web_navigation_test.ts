@@ -46,15 +46,46 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     const secret = await browser.evaluate<string>(
       "document.querySelector('[data-once-key]').textContent",
     );
-    await click(browser, 'a[href="/contacts"]');
-    await poll(() =>
-      browser.evaluate<boolean>(
-        "location.pathname==='/contacts' && !!document.querySelector('.pending-key')",
-      )
+    assert(
+      await browser.evaluate<boolean>(
+        "!!document.querySelector('dialog:modal')",
+      ),
     );
-    await click(browser, 'a[href="/keys"]');
-    await poll(() =>
-      browser.evaluate<boolean>("!!document.querySelector('[data-once-key]')")
+    // Native hit-testing must block the navigation link, not just make it look disabled.
+    const blockedPoint = await browser.evaluate<{ x: number; y: number }>(
+      "(() => { const r=document.querySelector('a[href=\"/contacts\"]').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}; })()",
+    );
+    for (const type of ["mousePressed", "mouseReleased"]) {
+      await browser.send("Input.dispatchMouseEvent", {
+        type,
+        ...blockedPoint,
+        button: "left",
+        clickCount: 1,
+      });
+    }
+    await key(browser, "Escape");
+    for (let i = 0; i < 6; i++) {
+      await key(browser, "Tab");
+      assert(
+        await browser.evaluate<boolean>(
+          "!!document.activeElement?.closest('dialog:modal')",
+        ),
+        JSON.stringify(
+          await browser.evaluate(
+            "({tag:document.activeElement.tagName,action:document.activeElement.dataset.action,modal:!!document.querySelector('dialog:modal')})",
+          ),
+        ),
+      );
+    }
+    assertEquals(await browser.evaluate("location.pathname"), "/keys");
+    assert(
+      await browser.evaluate<boolean>(
+        "getComputedStyle(document.querySelector('dialog'),'::backdrop').backdropFilter.includes('blur') && getComputedStyle(document.querySelector('dialog')).filter==='none'",
+      ),
+    );
+    // External history changes may still occur; the global handoff cannot vanish.
+    await browser.evaluate(
+      "history.pushState({},'', '/contacts');dispatchEvent(new PopStateEvent('popstate'))",
     );
     assert(
       await browser.evaluate(
@@ -67,15 +98,54 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
         "JSON.stringify({...localStorage})+JSON.stringify({...sessionStorage})",
       )).includes(secret),
     );
-    await click(browser, '[data-action="logout"]');
-    await click(browser, '[data-action="keep-work"]');
+    const keyReload = browser.send("Page.reload");
+    await pause(200);
+    await browser.send("Page.handleJavaScriptDialog", { accept: false });
+    await keyReload;
     assert(
       await browser.evaluate(
         "document.querySelector('[data-once-key]').textContent",
       ) === secret,
-      "Cancelling logout must retain the shown-once key",
+      "Cancelling native departure must retain the shown-once key",
+    );
+    // A failed clipboard action is local, retryable and never acknowledges the key.
+    await browser.evaluate(
+      "window.__copy=document.execCommand.bind(document);document.execCommand=()=>false",
+    );
+    await click(browser, '[data-action="copy-key"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('dialog [role=alert]')?.textContent.includes('manually')",
+      )
+    );
+    assert(
+      await browser.evaluate<boolean>(
+        "!!document.querySelector('dialog:modal [data-once-key]')",
+      ),
+    );
+    await browser.evaluate("document.execCommand=window.__copy");
+    await click(browser, '[data-action="copy-key"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('dialog [role=status]')?.textContent==='Key copied.'",
+      )
+    );
+    assertEquals(
+      await browser.evaluate(
+        "document.querySelector('[data-action=copy-key]').textContent.trim()",
+      ),
+      "Key copied",
     );
     await click(browser, '[data-action="dismiss-key"]');
+    await click(browser, 'a[href="/keys"]');
+    await click(browser, "#key-name");
+    await key(browser, "v", 2);
+    assertEquals(
+      await browser.evaluate("document.querySelector('#key-name').value"),
+      secret,
+    );
+    await key(browser, "a", 2);
+    await key(browser, "Backspace");
     await click(browser, 'a[href="/identity"]');
     await type(browser, "#display-name", "Unsent name");
     await type(browser, "#relay", "relay.example");

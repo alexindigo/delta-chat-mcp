@@ -160,7 +160,7 @@ export function appControl() {
         void keys.remove();
       },
       copyKey: () => {
-        if (keys.state.shown) void keys.copy(keys.state.shown.key);
+        void keys.copyKey();
       },
       copyConfig: () => {
         void keys.copy(

@@ -12,6 +12,7 @@ import { IdentityScreen } from "./IdentityScreen.tsx";
 import { ContactsScreen } from "./ContactsScreen.tsx";
 import { ChatScreen } from "./ChatScreen.tsx";
 import { StatusScreen } from "./StatusScreen.tsx";
+import { KeyHandoff } from "./KeyHandoff.tsx";
 import type { MessagingState } from "../messaging.ts";
 export function App(
   props: {
@@ -131,12 +132,6 @@ export function App(
                     </button>
                   </section>
                 </Show>
-                <Show when={props.keys.shown && props.screen !== "keys"}>
-                  <p class="pending-key" role="status">
-                    An API key is waiting to be saved.{" "}
-                    <a href="/keys">Return to API keys</a>
-                  </p>
-                </Show>
                 <Show when={props.routeError}>
                   <p class="error" role="alert">{props.routeError}</p>
                 </Show>
@@ -208,6 +203,18 @@ export function App(
       <footer class="app-footer">
         Private relay on your LAN. Plain HTTP sends credentials unencrypted.
       </footer>
+      <Show when={props.keys.shown}>
+        {(shown) => (
+          <KeyHandoff
+            value={shown().key}
+            copying={props.keys.copying}
+            copied={props.keys.copied}
+            error={props.keys.copyError}
+            copy={props.actions.copyKey}
+            acknowledge={props.actions.dismissKey}
+          />
+        )}
+      </Show>
     </div>
   );
 }

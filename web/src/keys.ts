@@ -19,6 +19,9 @@ export interface KeysState {
   busy: boolean;
   error: string;
   notice: string;
+  copying: boolean;
+  copied: boolean;
+  copyError: string;
 }
 export const initialKeys = (): KeysState => ({
   rows: [],
@@ -28,6 +31,9 @@ export const initialKeys = (): KeysState => ({
   busy: false,
   error: "",
   notice: "",
+  copying: false,
+  copied: false,
+  copyError: "",
 });
 export class Keys {
   state = initialKeys();
@@ -51,7 +57,7 @@ export class Keys {
     this.patch({ name: value });
   }
   dismiss() {
-    this.patch({ shown: null, notice: "" });
+    this.patch({ shown: null, notice: "", copied: false, copyError: "" });
   }
   confirm(id: string | null) {
     this.patch({ confirm: id });
@@ -125,5 +131,25 @@ export class Keys {
       await this.clipboard(text);
       if (generation === this.#generation) this.patch({ notice: "Copied." });
     });
+  }
+  async copyKey() {
+    const shown = this.state.shown, generation = this.#generation;
+    if (!shown || this.state.copying) return;
+    this.patch({ copying: true, copied: false, copyError: "" });
+    const current = () =>
+      generation === this.#generation && this.state.shown === shown;
+    try {
+      await this.clipboard(shown.key);
+      if (current()) this.patch({ copied: true });
+    } catch {
+      if (current()) {
+        this.patch({
+          copyError:
+            "Copy unavailable. Select the key and copy it manually, or try again.",
+        });
+      }
+    } finally {
+      if (generation === this.#generation) this.patch({ copying: false });
+    }
   }
 }

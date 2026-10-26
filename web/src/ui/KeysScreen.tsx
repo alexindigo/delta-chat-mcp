@@ -47,35 +47,6 @@ export function KeysScreen(
                 Create key
               </button>
             </form>
-            <Show when={props.state.shown}>
-              {(shown) => (
-                <section class="once-key" aria-label="New API key">
-                  <h2>Save this key now</h2>
-                  <p>
-                    It is shown only once. Put it in your agent's environment as
-                    DELTA_CHAT_MCP_KEY.
-                  </p>
-                  <code data-once-key>{shown().key}</code>
-                  <div class="actions">
-                    <button
-                      type="button"
-                      data-action="copy-key"
-                      disabled={props.state.busy}
-                      onClick={() => props.actions.copyKey()}
-                    >
-                      Copy key
-                    </button>
-                    <button
-                      type="button"
-                      data-action="dismiss-key"
-                      onClick={() => props.actions.dismissKey()}
-                    >
-                      I've saved it
-                    </button>
-                  </div>
-                </section>
-              )}
-            </Show>
             <div class="table-scroll">
               <table>
                 <caption>API keys</caption>

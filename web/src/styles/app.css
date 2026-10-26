@@ -294,19 +294,6 @@ pre code {
 .key-create button {
   min-height: 42px;
 }
-.once-key {
-  border: 2px solid var(--accent);
-  border-radius: var(--sheet-radius);
-  padding: 20px;
-  margin-bottom: 24px;
-}
-.once-key code {
-  display: block;
-  padding: 12px;
-  background: var(--desk);
-  margin-bottom: 16px;
-  user-select: all;
-}
 .table-scroll {
   overflow: auto;
 }
@@ -559,11 +546,6 @@ textarea {
 .departure-confirm button {
   margin: 0 8px 8px 0;
 }
-.pending-key {
-  border-left: 3px solid var(--accent);
-  padding: 12px;
-  background: var(--desk);
-}
 .chat-desk {
   display: grid;
   grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
@@ -808,4 +790,38 @@ textarea {
   .composer-row {
     padding: 16px;
   }
+}
+
+.key-handoff {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  margin: auto;
+  padding: clamp(20px, 4vw, 32px);
+  background: var(--sheet);
+  color: var(--ink);
+  border: 2px solid var(--accent);
+  border-radius: var(--sheet-radius);
+}
+.key-handoff::backdrop {
+  background: var(--modal-veil);
+  backdrop-filter: blur(6px);
+}
+.key-handoff-value {
+  display: block;
+  padding: 16px;
+  background: var(--desk);
+  border-radius: var(--control-radius);
+  user-select: all;
+  margin-bottom: 16px;
+}
+.key-handoff-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.key-handoff-copy [role="status"] {
+  color: var(--accent);
 }

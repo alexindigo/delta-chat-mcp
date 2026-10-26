@@ -20,7 +20,8 @@ export async function copyText(text: string): Promise<void> {
   field.setAttribute("readonly", "");
   field.setAttribute("aria-label", "Copy buffer");
   field.style.cssText = "position:fixed;inset:0;width:1px;height:1px;opacity:0";
-  document.body.append(field);
+  // Native modal siblings are inert, including a body-attached copy buffer.
+  (active?.closest("dialog:modal") ?? document.body).append(field);
   try {
     field.select();
     if (!document.execCommand("copy")) {
