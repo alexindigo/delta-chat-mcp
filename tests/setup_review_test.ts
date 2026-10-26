@@ -72,14 +72,17 @@ Deno.test("native setup flow guides identity and accepted pairing before keys, p
       }) as typeof fetch,
     },
   );
-  service.app.account.status = () =>
-    Promise.resolve({
+  const initialFacts = Promise.withResolvers<void>();
+  service.app.account.status = async () => {
+    await initialFacts.promise;
+    return {
       configured,
       accountId: 1,
       address: "relay@fixture.test",
       displayName: "Relay fixture",
       connectivity: 4000,
-    });
+    };
+  };
   service.app.account.create = async (input) => {
     configured = true;
     submitted = input.relay;
@@ -141,6 +144,17 @@ Deno.test("native setup flow guides identity and accepted pairing before keys, p
     await type(browser, "#username", "operator");
     await type(browser, "#password", "private-setup-fixture");
     await click(browser, '[data-action="access-submit"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('.working-sheet')?.textContent.includes('Checking setup…')",
+      )
+    );
+    assertEquals(await browser.evaluate("location.pathname"), "/");
+    assertEquals(
+      await browser.evaluate("!!document.querySelector('#display-name')"),
+      false,
+    );
+    initialFacts.resolve();
     await ready(browser, "Relay identity");
     assertEquals(await browser.evaluate("location.pathname"), "/identity");
     assertEquals(await browser.evaluate("isSecureContext"), false);
@@ -240,6 +254,7 @@ Deno.test("native setup flow guides identity and accepted pairing before keys, p
       fetches,
     });
   } finally {
+    initialFacts.resolve();
     await page?.close();
     await service.close();
   }

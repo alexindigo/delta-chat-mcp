@@ -166,9 +166,13 @@ storage.
 ## Agent connection
 
 Open the relay's LAN URL, complete access setup, then create a named key on
-**API keys**. Save the key when it is shown; it cannot be retrieved later. The
-page lists created/last-used times and confirms deletion. Public access explains
-that no key is needed. API keys grant access to **every chat** of this identity.
+**API keys**. Save the key when it is shown; it cannot be retrieved later. A
+focused dialog keeps the rest of the desk blurred and inactive until you choose
+**I've saved it**. **Copy key** confirms beside the action only after successful
+copying; it keeps the key open. If copying fails, retry or select the key and
+save it manually. The page lists created/last-used times and confirms deletion.
+Public access explains that no key is needed. API keys grant access to **every
+chat** of this identity.
 
 The page supplies a configuration snippet using the browser's actual origin.
 Merge this entry into OpenCode yourself; the relay never edits your

@@ -20,7 +20,7 @@ input {
   -webkit-tap-highlight-color: var(--clear);
 }
 button {
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   background: var(--sheet);
   color: var(--ink);
   padding: 8px 14px;
@@ -46,7 +46,7 @@ input:not([type="radio"]) {
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: var(--control-radius);
   background: var(--desk);
   color: var(--ink);
@@ -444,7 +444,7 @@ textarea {
   padding: 10px;
   color: var(--ink);
   background: var(--desk);
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: var(--control-radius);
   resize: vertical;
 }
@@ -832,7 +832,7 @@ select {
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--control-line);
   border-radius: var(--control-radius);
   background: var(--desk);
   color: var(--ink);

@@ -94,7 +94,7 @@ async function dark(page: Cdp, expected: boolean) {
     await page.evaluate(
       "getComputedStyle(document.documentElement).backgroundColor",
     ),
-    expected ? "rgb(24, 38, 59)" : "rgb(234, 240, 247)",
+    expected ? "rgb(36, 40, 36)" : "rgb(240, 240, 235)",
   );
   assertEquals(
     await page.evaluate("document.documentElement.style.colorScheme"),
@@ -104,7 +104,7 @@ async function dark(page: Cdp, expected: boolean) {
     await page.evaluate(
       "document.querySelector('meta[name=\"theme-color\"]').content",
     ),
-    expected ? "#18263b" : "#eaf0f7",
+    expected ? "#242824" : "#f0f0eb",
   );
 }
 

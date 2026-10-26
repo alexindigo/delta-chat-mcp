@@ -804,7 +804,7 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
         await browser.evaluate(
           "getComputedStyle(document.documentElement).backgroundColor",
         ),
-        mode === "dark" ? "rgb(24, 38, 59)" : "rgb(234, 240, 247)",
+        mode === "dark" ? "rgb(36, 40, 36)" : "rgb(240, 240, 235)",
       );
       await fullShot(browser, `${evidence}/chat-${mode}.png`, chatRegions);
       await click(browser, 'a[href="/contacts"]');

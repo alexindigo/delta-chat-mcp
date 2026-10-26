@@ -55,7 +55,7 @@ export function browserTheme(): Theme {
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
       document.querySelector('meta[name="theme-color"]')?.setAttribute(
         "content",
-        dark ? "#18263b" : "#eaf0f7",
+        dark ? "#242824" : "#f0f0eb",
       );
     },
   });

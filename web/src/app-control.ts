@@ -28,8 +28,14 @@ export function appControl() {
       accessState().session?.mode === "public",
     );
   const resolveLanding = () => {
-    if (!accessState().session?.authenticated) return;
-    const next = progress().next;
+    // Workflow consumes controller facts directly. Solid's render signals may
+    // settle later than the publish callback that received these facts.
+    if (!access.state.session?.authenticated) return;
+    const next = setupProgress(
+      messaging.state,
+      keys.state,
+      access.state.session.mode === "public",
+    ).next;
     if (next) page.resolveDefault(next);
   };
   let signedIn = false;

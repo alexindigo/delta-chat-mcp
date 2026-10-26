@@ -1,18 +1,19 @@
 /* SPDX-License-Identifier: LGPL-3.0-only */
 :root {
-  --desk: #eaf0f7;
-  --sheet: #ffffff;
-  --ink: #172d4b;
-  --quiet: #506581;
-  --accent: #126381;
-  --line: #bbcadd;
+  --desk: #f0f0eb;
+  --sheet: #fcfcf8;
+  --ink: #2c342e;
+  --quiet: #626d61;
+  --accent: #566e4e;
+  --line: #c9cfc4;
+  --control-line: #78856f;
   --on-accent: #ffffff;
-  --rail: #172d4b;
-  --rail-ink: #ffffff;
-  --rail-quiet: #bbcadd;
+  --rail: #e3e6dd;
+  --rail-ink: #2c342e;
+  --rail-quiet: #5d695b;
   --clear: transparent;
   --qr-paper: #ffffff;
-  --modal-veil: #172d4b80;
+  --modal-veil: #24282480;
   --body-font: "Atkinson Hyperlegible", sans-serif;
   --code-font: "IBM Plex Mono", monospace;
   --text-small: 0.875rem;
@@ -29,14 +30,15 @@
   --sheet-radius: 12px;
 }
 html.dark {
-  --desk: #18263b;
-  --sheet: #22334b;
-  --ink: #e6eef8;
-  --quiet: #adbed4;
-  --accent: #79c9e4;
-  --line: #4c6480;
-  --on-accent: #18263b;
-  --rail: #18263b;
-  --rail-ink: #e6eef8;
-  --rail-quiet: #adbed4;
+  --desk: #242824;
+  --sheet: #303630;
+  --ink: #e9eee6;
+  --quiet: #b6c1b1;
+  --accent: #a8bf98;
+  --line: #596753;
+  --control-line: #7f8e78;
+  --on-accent: #242824;
+  --rail: #292f28;
+  --rail-ink: #e9eee6;
+  --rail-quiet: #b6c1b1;
 }
