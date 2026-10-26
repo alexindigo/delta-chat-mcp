@@ -116,6 +116,11 @@ selection persists as the choice ID; System follows live OS changes, with a
 pre-stylesheet head bootstrap to prevent a wrong-theme flash. Copying has a
 plain-HTTP fallback.
 
+The desk uses the default Globnotes Light/Dark pair with derived readable text
+and control roles; [palette provenance](docs/palette.md) records the source and
+contrast policy. Native selects share one inset decorative chevron while the
+full native control retains pointer, keyboard and option semantics.
+
 ## Messaging in the browser
 
 The default setup order is **Identity → Contacts → API keys → Chats** (Public

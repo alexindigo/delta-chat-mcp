@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-only
+import { GLOBNOTES_DARK, GLOBNOTES_LIGHT, palette } from "./palette.ts";
 export type ThemeChoice = "system" | "light" | "dark";
 export interface ThemePort {
   read(): string | null;
@@ -51,11 +52,14 @@ export function browserTheme(): Theme {
       return () => query.removeEventListener("change", listener);
     },
     apply: (dark) => {
+      for (const [role, value] of Object.entries(palette(dark))) {
+        document.documentElement.style.setProperty(`--${role}`, value);
+      }
       document.documentElement.classList.toggle("dark", dark);
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
       document.querySelector('meta[name="theme-color"]')?.setAttribute(
         "content",
-        dark ? "#242824" : "#f0f0eb",
+        dark ? GLOBNOTES_DARK.background : GLOBNOTES_LIGHT.background,
       );
     },
   });

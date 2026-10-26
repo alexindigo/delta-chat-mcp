@@ -1,19 +1,21 @@
 /* SPDX-License-Identifier: LGPL-3.0-only */
 :root {
-  --desk: #f0f0eb;
-  --sheet: #fcfcf8;
-  --ink: #2c342e;
-  --quiet: #626d61;
-  --accent: #566e4e;
-  --line: #c9cfc4;
-  --control-line: #78856f;
+  /* Prepaint equivalents of palette.ts; theme_test.ts rejects token drift. */
+  --desk: #ffffff;
+  --sheet: #f3f4f5;
+  --ink: #2c3139;
+  --quiet: #69707c;
+  --brand: #0284c7;
+  --accent: #0276b2;
+  --line: #eceef0;
+  --control-line: #8c8d8e;
   --on-accent: #ffffff;
-  --rail: #e3e6dd;
-  --rail-ink: #2c342e;
-  --rail-quiet: #5d695b;
+  --rail: #f3f4f5;
+  --rail-ink: #2c3139;
+  --rail-quiet: #69707c;
   --clear: transparent;
   --qr-paper: #ffffff;
-  --modal-veil: #24282480;
+  --modal-veil: #22262c80;
   --body-font: "Atkinson Hyperlegible", sans-serif;
   --code-font: "IBM Plex Mono", monospace;
   --text-small: 0.875rem;
@@ -30,15 +32,17 @@
   --sheet-radius: 12px;
 }
 html.dark {
-  --desk: #242824;
-  --sheet: #303630;
-  --ink: #e9eee6;
-  --quiet: #b6c1b1;
-  --accent: #a8bf98;
-  --line: #596753;
-  --control-line: #7f8e78;
-  --on-accent: #242824;
-  --rail: #292f28;
-  --rail-ink: #e9eee6;
-  --rail-quiet: #b6c1b1;
+  --desk: #22262c;
+  --sheet: #2c3139;
+  --ink: #c1c7d0;
+  --quiet: #9098a7;
+  --brand: #38bdf8;
+  --accent: #38bdf8;
+  --line: #5e6b80;
+  --control-line: #6e7a8c;
+  --on-accent: #22262c;
+  --rail: #2c3139;
+  --rail-ink: #c1c7d0;
+  --rail-quiet: #9098a7;
+  --modal-veil: #22262c80;
 }
