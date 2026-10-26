@@ -4,6 +4,7 @@ import type { RelayState } from "../relays.ts";
 import type { MessagingState } from "../messaging.ts";
 import type { AppControl } from "../app-control.ts";
 import { InvitePanel } from "./InvitePanel.tsx";
+import { NativeSelect } from "./NativeSelect.tsx";
 export function IdentityScreen(
   props: {
     state: MessagingState;
@@ -43,7 +44,7 @@ export function IdentityScreen(
                   )}
               />
               <label for="public-relay">Chatmail relay</label>
-              <select
+              <NativeSelect
                 id="public-relay"
                 value={props.relays.selected}
                 onChange={(event) =>
@@ -53,7 +54,7 @@ export function IdentityScreen(
                   {(domain) => <option value={domain}>{domain}</option>}
                 </For>
                 <option value="custom">Custom / private relay…</option>
-              </select>
+              </NativeSelect>
               <div class="relay-directory">
                 <button
                   type="button"

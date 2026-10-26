@@ -826,16 +826,53 @@ textarea {
   color: var(--accent);
 }
 
-select {
+.native-select {
+  --select-border: 1px;
+  --select-chevron-size: 16px;
+  --select-chevron-inset: 12px;
+  --select-text-gap: 10px;
+  display: grid;
+  min-width: 0;
+}
+.native-select select,
+.native-select svg {
+  grid-area: 1 / 1;
+}
+.native-select select {
+  appearance: none;
   font: inherit;
   min-width: 0;
   width: 100%;
   min-height: 42px;
   padding: 8px 10px;
-  border: 1px solid var(--control-line);
+  padding-inline-end: calc(
+    var(--select-chevron-inset) + var(--select-chevron-size) +
+    var(--select-text-gap)
+  );
+  border: var(--select-border) solid var(--control-line);
   border-radius: var(--control-radius);
   background: var(--desk);
   color: var(--ink);
+}
+.native-select svg {
+  align-self: center;
+  justify-self: end;
+  width: var(--select-chevron-size);
+  height: var(--select-chevron-size);
+  margin-inline-end: calc(var(--select-chevron-inset) + var(--select-border));
+  pointer-events: none;
+  color: var(--ink);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2px;
+}
+@media (forced-colors: active) {
+  .native-select select {
+    appearance: auto;
+  }
+  .native-select svg {
+    display: none;
+  }
 }
 .relay-directory p {
   font-size: var(--text-small);

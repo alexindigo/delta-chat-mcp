@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
-import { click, productBuild, type } from "./browser.ts";
+import { click, key, productBuild, type } from "./browser.ts";
 import { fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
@@ -64,6 +64,115 @@ async function palette(page: Cdp) {
     );
   }
   return pairs;
+}
+async function nativeSelect(page: Cdp) {
+  const geometry = await page.evaluate<{
+    inset: number;
+    centerDelta: number;
+    textGap: number;
+    hit: boolean;
+    x: number;
+    y: number;
+  }>(`(async()=>{
+    const select=document.querySelector('#public-relay');
+    select.scrollIntoView({block:'center',behavior:'instant'});
+    await new Promise(requestAnimationFrame);
+    const svg=select.parentElement.querySelector('svg'), path=svg.querySelector('path');
+    const r=select.getBoundingClientRect(), s=svg.getBoundingClientRect(), box=path.getBBox(), matrix=path.getScreenCTM();
+    const edge=new DOMPoint(box.x+box.width,box.y).matrixTransform(matrix).x+parseFloat(getComputedStyle(path).strokeWidth)*matrix.a/2;
+    const style=getComputedStyle(select), x=s.x+s.width/2,y=s.y+s.height/2;
+    return {inset:r.right-parseFloat(style.borderRightWidth)-edge,centerDelta:Math.abs(r.y+r.height/2-y),textGap:s.x-(r.right-parseFloat(style.paddingRight)),hit:document.elementFromPoint(x,y)===select,x,y};
+  })()`);
+  assert(
+    geometry.inset >= 12 && geometry.inset < 12.1,
+    JSON.stringify(geometry),
+  );
+  assert(geometry.centerDelta < 0.1, JSON.stringify(geometry));
+  assert(geometry.textGap >= 8, JSON.stringify(geometry));
+  assert(
+    geometry.hit,
+    "The real select owns the decorative chevron hit target",
+  );
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await page.send("Input.dispatchMouseEvent", {
+      type,
+      x: geometry.x,
+      y: geometry.y,
+      button: "left",
+      buttons: type === "mousePressed" ? 1 : 0,
+      clickCount: 1,
+    });
+  }
+  await poll(() =>
+    page.evaluate<boolean>(
+      "document.querySelector('#public-relay').matches(':open')",
+    )
+  );
+  for (const type of ["keyDown", "keyUp"]) {
+    await page.send("Input.dispatchKeyEvent", {
+      type,
+      key: "End",
+      code: "End",
+      windowsVirtualKeyCode: 35,
+      nativeVirtualKeyCode: 35,
+    });
+  }
+  await key(page, "Enter");
+  await poll(() =>
+    page.evaluate<boolean>(
+      "document.querySelector('#public-relay').value==='custom' && !!document.querySelector('#relay')",
+    )
+  );
+  // Reach the control by keyboard from its preceding field, then select a relay.
+  await click(page, "#display-name");
+  await key(page, "Tab");
+  assert(
+    await page.evaluate<boolean>(
+      "document.activeElement.id==='public-relay' && document.activeElement.matches(':focus-visible')",
+    ),
+  );
+  assertEquals(
+    await page.evaluate(
+      "({width:getComputedStyle(document.activeElement).outlineWidth,offset:getComputedStyle(document.activeElement).outlineOffset})",
+    ),
+    { width: "3px", offset: "3px" },
+  );
+  for (const type of ["keyDown", "keyUp"]) {
+    await page.send("Input.dispatchKeyEvent", {
+      type,
+      key: "ArrowDown",
+      code: "ArrowDown",
+      windowsVirtualKeyCode: 40,
+      nativeVirtualKeyCode: 40,
+      modifiers: 1,
+    });
+  }
+  await poll(() =>
+    page.evaluate<boolean>(
+      "document.querySelector('#public-relay').matches(':open')",
+    )
+  );
+  for (const type of ["keyDown", "keyUp"]) {
+    await page.send("Input.dispatchKeyEvent", {
+      type,
+      key: "Home",
+      code: "Home",
+      windowsVirtualKeyCode: 36,
+      nativeVirtualKeyCode: 36,
+    });
+  }
+  await key(page, "Enter");
+  await poll(() =>
+    page.evaluate<boolean>(
+      "document.querySelector('#public-relay').value==='nine.testrun.org' && !document.querySelector('#public-relay').matches(':open') && !document.querySelector('#relay')",
+    )
+  );
+  assert(
+    await page.evaluate<boolean>(
+      "document.documentElement.scrollWidth<=innerWidth",
+    ),
+  );
+  return geometry;
 }
 Deno.test("setup desk renders restrained light/dark palettes, readable controls and sharp bounded native handoff at desktop and 390px", async () => {
   await productBuild();
@@ -150,6 +259,7 @@ Deno.test("setup desk renders restrained light/dark palettes, readable controls 
         )
       );
       facts[theme] = await palette(browser);
+      facts[`${theme}-select`] = await nativeSelect(browser);
       await capture(browser, `${evidence}/identity-${theme}.png`, [
         ".app-header",
         ".nav-rail",
@@ -158,6 +268,27 @@ Deno.test("setup desk renders restrained light/dark palettes, readable controls 
         ".identity-screen",
         ".app-footer",
       ]);
+      await browser.send("Emulation.setDeviceMetricsOverride", {
+        width: 390,
+        height: 844,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      facts[`${theme}-select-390`] = await nativeSelect(browser);
+      await capture(browser, `${evidence}/identity-${theme}-narrow.png`, [
+        ".app-header",
+        ".nav-rail",
+        ".connection-status",
+        ".setup-steps",
+        ".identity-screen",
+        ".app-footer",
+      ]);
+      await browser.send("Emulation.setDeviceMetricsOverride", {
+        width: 1280,
+        height: 1000,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
     }
     await click(browser, '[data-action="create-identity"]');
     await poll(() =>
