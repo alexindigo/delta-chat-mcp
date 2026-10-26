@@ -129,12 +129,15 @@ async function fullShot(page: Cdp, path: string, regions: string[]) {
   }
 }
 async function theme(page: Cdp, id: string) {
-  await click(page, `[data-theme="${id}"]`);
+  const choice = id === "light" || id === "dark" ? `globnotes-${id}` : id;
+  await click(page, '[data-action="open-theme"]');
+  await click(page, `[data-theme-id="${choice}"]`);
   await poll(() =>
     page.evaluate<boolean>(
-      `document.querySelector('[data-theme="${id}"]')?.getAttribute('aria-pressed')==='true'`,
+      `document.querySelector('[data-theme-id="${choice}"]')?.getAttribute('aria-checked')==='true'`,
     )
   );
+  await click(page, '[data-action="theme-done"]');
 }
 async function geometry(page: Cdp) {
   const result = await page.evaluate<
@@ -774,7 +777,7 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
         roomReply,
       },
     );
-    for (const mode of ["light", "dark"]) {
+    for (const mode of ["light", "dark", "nord"]) {
       await theme(browser, mode);
       await fullShot(browser, `${evidence}/browser-created-room-${mode}.png`, [
         ".app-header",

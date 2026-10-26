@@ -77,12 +77,17 @@ async function os(page: Cdp, value: "light" | "dark") {
   });
 }
 async function mode(page: Cdp, choice: string) {
-  await click(page, `[data-theme="${choice}"]`);
+  const id = choice === "light" || choice === "dark"
+    ? `globnotes-${choice}`
+    : choice;
+  await click(page, '[data-action="open-theme"]');
+  await click(page, `[data-theme-id="${id}"]`);
   await poll(() =>
     page.evaluate<boolean>(
-      `document.querySelector('[data-theme="${choice}"]')?.getAttribute('aria-pressed') === 'true'`,
+      `document.querySelector('[data-theme-id="${id}"]')?.getAttribute('aria-checked') === 'true'`,
     )
   );
+  await click(page, '[data-action="theme-done"]');
 }
 async function dark(page: Cdp, expected: boolean) {
   await poll(() =>
@@ -311,7 +316,7 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await dark(page, false);
       assertEquals(
         await page.evaluate("localStorage.getItem('delta-chat-mcp-theme')"),
-        "light",
+        "globnotes-light",
       );
       await mode(page, "system");
       await os(page, "light");
@@ -345,10 +350,11 @@ async function prove(modeId: AccessMode, captures: boolean) {
       facts.preStylesheetPreFirstPaint = paint;
       // Keyboard is actual browser key input, including visible native focus.
       await mode(page, "system");
-      await key(page, "Tab");
+      await click(page, '[data-action="open-theme"]');
+      await key(page, "ArrowRight");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.activeElement?.getAttribute('data-theme') === 'light'",
+          "document.activeElement?.getAttribute('data-theme-id') === 'globnotes-light'",
         )
       );
       assert(
@@ -359,27 +365,28 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await key(page, "Enter");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.querySelector('[data-theme=light]').getAttribute('aria-pressed')==='true'",
+          "document.querySelector('[data-theme-id=globnotes-light]').getAttribute('aria-checked')==='true'",
         )
       );
       await dark(page, false);
-      await key(page, "Tab");
+      await key(page, "ArrowRight");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.activeElement?.getAttribute('data-theme')==='dark'",
+          "document.activeElement?.getAttribute('data-theme-id')==='globnotes-dark'",
         )
       );
       await key(page, "Enter");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.querySelector('[data-theme=dark]').getAttribute('aria-pressed')==='true'",
+          "document.querySelector('[data-theme-id=globnotes-dark]').getAttribute('aria-checked')==='true'",
         )
       );
       await dark(page, true);
       assertEquals(
         await page.evaluate("localStorage.getItem('delta-chat-mcp-theme')"),
-        "dark",
+        "globnotes-dark",
       );
+      await click(page, '[data-action="theme-done"]');
       facts.keyboardTheme = true;
       const blocked = await page.send("Page.addScriptToEvaluateOnNewDocument", {
         source:

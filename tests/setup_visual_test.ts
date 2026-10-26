@@ -250,7 +250,9 @@ Deno.test("setup desk renders restrained light/dark palettes, readable controls 
       insecure: await browser.evaluate("!isSecureContext"),
     };
     for (const theme of ["light", "dark"]) {
-      await click(browser, `[data-theme=${theme}]`);
+      await click(browser, '[data-action="open-theme"]');
+      await click(browser, `[data-theme-id="globnotes-${theme}"]`);
+      await click(browser, '[data-action="theme-done"]');
       await poll(() =>
         browser.evaluate<boolean>(
           `document.documentElement.classList.contains('dark')===${
@@ -298,7 +300,9 @@ Deno.test("setup desk renders restrained light/dark palettes, readable controls 
     );
     await click(browser, '[data-action="setup-next"]');
     for (const theme of ["light", "dark"]) {
-      await click(browser, `[data-theme=${theme}]`);
+      await click(browser, '[data-action="open-theme"]');
+      await click(browser, `[data-theme-id="globnotes-${theme}"]`);
+      await click(browser, '[data-action="theme-done"]');
       await capture(browser, `${evidence}/pairing-${theme}.png`, [
         ".app-header",
         ".nav-rail",
@@ -313,7 +317,9 @@ Deno.test("setup desk renders restrained light/dark palettes, readable controls 
     }
     await click(browser, 'a[href="/keys"]');
     for (const theme of ["light", "dark"]) {
-      await click(browser, `[data-theme=${theme}]`);
+      await click(browser, '[data-action="open-theme"]');
+      await click(browser, `[data-theme-id="globnotes-${theme}"]`);
+      await click(browser, '[data-action="theme-done"]');
       await poll(() =>
         browser.evaluate<boolean>(
           "!document.querySelector('#key-name').disabled",

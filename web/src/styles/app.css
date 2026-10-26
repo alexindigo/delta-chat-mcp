@@ -123,28 +123,11 @@ pre code {
   color: var(--quiet);
 }
 .header-actions,
-.theme-switch,
 .actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-.theme-switch {
-  gap: 0;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-}
-.theme-switch button {
-  border-color: var(--clear);
-  background: var(--clear);
-  font-size: var(--text-small);
-  padding: 5px 10px;
-}
-.theme-switch button[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 .access-sheet {
   display: grid;
@@ -993,4 +976,120 @@ textarea {
   .has-chat .narrow-room-entry {
     display: block;
   }
+}
+
+/* Conversation previews consume the live effective role map. */
+.theme-dialog {
+  width: min(760px, calc(100vw - 2rem));
+  padding: 0;
+  overflow: hidden;
+}
+.theme-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.theme-dialog-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+.theme-dialog-header h2 {
+  margin: 0;
+}
+.theme-dialog-header p {
+  margin: var(--space-2) 0 0;
+  color: var(--quiet);
+}
+.theme-picker {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.theme-family {
+  min-width: 0;
+}
+.theme-family h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-body);
+}
+.theme-family-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(9rem, 100%), 1fr));
+  gap: var(--space-4);
+}
+.theme-tile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  text-align: left;
+  background: var(--desk);
+  color: var(--ink);
+  border: 1px solid var(--control-line);
+}
+.theme-tile[aria-checked="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.theme-tile:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.theme-tile-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+.theme-system-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.theme-system-description {
+  font-size: var(--text-small);
+  color: var(--quiet);
+}
+.theme-conversation {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--desk);
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: 400;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.theme-preview-title {
+  font-weight: 700;
+}
+.theme-preview-incoming {
+  align-self: flex-start;
+  padding: var(--space-2);
+  background: var(--sheet);
+  border-radius: var(--control-radius);
+}
+.theme-preview-outgoing {
+  align-self: flex-end;
+  padding: var(--space-2);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--control-radius);
+}
+.theme-preview-meta {
+  color: var(--quiet);
 }

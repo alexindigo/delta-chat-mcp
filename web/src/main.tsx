@@ -27,8 +27,8 @@ render(() => {
       waiting={control.waiting()}
       logoutConfirm={control.logoutConfirm()}
       config={control.config()}
-      theme={control.theme.choice()}
-      chooseTheme={(id) => control.theme.choose(id)}
+      theme={control.theme.state()}
+      themeControl={control.theme}
       actions={control.actions}
     />
   );

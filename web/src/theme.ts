@@ -1,20 +1,33 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { GLOBNOTES_DARK, GLOBNOTES_LIGHT, palette } from "./palette.ts";
-export type ThemeChoice = "system" | "light" | "dark";
+import { palette, themeById, type ThemeId, THEMES } from "./palette.ts";
+export type ThemeChoice = "system" | ThemeId;
+export interface ThemeState {
+  choice: ThemeChoice;
+  resolvedId: ThemeId;
+  mode: "light" | "dark";
+  label: string;
+  systemLabel: string;
+}
 export interface ThemePort {
   read(): string | null;
   write(choice: ThemeChoice): void;
   isDark(): boolean;
   watch(listener: () => void): () => void;
-  apply(dark: boolean): void;
+  apply(id: ThemeId): void;
 }
-export const themeChoice = (value: string | null): ThemeChoice =>
-  value === "dark" || value === "light" ? value : "system";
+export function themeChoice(value: string | null): ThemeChoice {
+  if (value === "light") return "globnotes-light";
+  if (value === "dark") return "globnotes-dark";
+  return THEMES.some((theme) => theme.id === value)
+    ? value as ThemeId
+    : "system";
+}
 
 /** The single runtime owner of storage, OS preference and document theme. */
 export class Theme {
   choice: ThemeChoice = "system";
   #off: () => void;
+  #listeners = new Set<(state: ThemeState) => void>();
   constructor(private port: ThemePort) {
     try {
       this.choice = themeChoice(port.read());
@@ -22,23 +35,45 @@ export class Theme {
     this.apply();
     this.#off = port.watch(() => {
       if (this.choice === "system") this.apply();
+      else this.publish();
     });
   }
+  get state(): ThemeState {
+    const systemId = this.port.isDark() ? "globnotes-dark" : "globnotes-light";
+    const resolvedId = this.choice === "system" ? systemId : this.choice;
+    const theme = themeById(resolvedId);
+    return {
+      choice: this.choice,
+      resolvedId,
+      mode: theme.mode,
+      label: this.choice === "system" ? "System" : theme.label,
+      systemLabel: themeById(systemId).label,
+    };
+  }
+  subscribe(listener: (state: ThemeState) => void) {
+    this.#listeners.add(listener);
+    return () => {
+      this.#listeners.delete(listener);
+    };
+  }
+  private publish() {
+    const state = this.state;
+    for (const listener of this.#listeners) listener(state);
+  }
   private apply() {
-    this.port.apply(
-      this.choice === "dark" ||
-        (this.choice === "system" && this.port.isDark()),
-    );
+    this.port.apply(this.state.resolvedId);
+    this.publish();
   }
   choose(choice: ThemeChoice) {
-    this.choice = choice;
+    this.choice = themeChoice(choice);
     try {
-      this.port.write(choice);
+      this.port.write(this.choice);
     } catch { /* Keep the page-lifetime choice. */ }
     this.apply();
   }
   close() {
     this.#off();
+    this.#listeners.clear();
   }
 }
 export function browserTheme(): Theme {
@@ -51,15 +86,17 @@ export function browserTheme(): Theme {
       query.addEventListener("change", listener);
       return () => query.removeEventListener("change", listener);
     },
-    apply: (dark) => {
-      for (const [role, value] of Object.entries(palette(dark))) {
+    apply: (id) => {
+      const colors = palette(id), dark = themeById(id).mode === "dark";
+      for (const [role, value] of Object.entries(colors)) {
         document.documentElement.style.setProperty(`--${role}`, value);
       }
       document.documentElement.classList.toggle("dark", dark);
+      document.documentElement.dataset.theme = id;
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
       document.querySelector('meta[name="theme-color"]')?.setAttribute(
         "content",
-        dark ? GLOBNOTES_DARK.background : GLOBNOTES_LIGHT.background,
+        colors.desk,
       );
     },
   });

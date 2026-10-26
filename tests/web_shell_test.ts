@@ -39,7 +39,9 @@ Deno.test("built product shell performs public setup and theme interaction on in
       )
     );
     assertEquals(await page.evaluate("isSecureContext"), false);
-    await click(page, '[data-theme="dark"]');
+    await click(page, '[data-action="open-theme"]');
+    await click(page, '[data-theme-id="globnotes-dark"]');
+    await click(page, '[data-action="theme-done"]');
     await poll(() =>
       page.evaluate<boolean>(
         "document.documentElement.classList.contains('dark')",

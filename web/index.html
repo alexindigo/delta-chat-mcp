@@ -8,17 +8,46 @@
     <script>
     (() => {
       let choice = "system";
+      // Static prepaint metadata, contract-tested against palette.ts.
+      const themes = {
+        "globnotes-light": ["light", "#ffffff"],
+        "globnotes-dark": ["dark", "#22262c"],
+        "dracula": ["dark", "#282a36"],
+        "dracula-alucard": ["light", "#fffbeb"],
+        "catppuccin-latte": ["light", "#eff1f5"],
+        "catppuccin-frappe": ["dark", "#303446"],
+        "catppuccin-macchiato": ["dark", "#24273a"],
+        "catppuccin-mocha": ["dark", "#1e1e2e"],
+        "solarized-light": ["light", "#fdf6e3"],
+        "solarized-dark": ["dark", "#002b36"],
+        "gruvbox-light": ["light", "#fbf1c7"],
+        "gruvbox-dark": ["dark", "#282828"],
+        "tokyo-night": ["dark", "#1a1b26"],
+        "tokyo-night-light": ["light", "#e6e7ed"],
+        "nord": ["dark", "#2e3440"],
+      };
       try {
         const saved = localStorage.getItem("delta-chat-mcp-theme");
-        if (saved === "light" || saved === "dark") choice = saved;
+        const id = saved === "light"
+          ? "globnotes-light"
+          : saved === "dark"
+          ? "globnotes-dark"
+          : saved;
+        if (Object.hasOwn(themes, id)) choice = id;
       } catch { /* Storage errors must not prevent OS resolution. */ }
-      const dark = choice === "dark" ||
-        (choice === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      const id = choice === "system"
+        ? (matchMedia("(prefers-color-scheme: dark)").matches
+          ? "globnotes-dark"
+          : "globnotes-light")
+        : choice;
+      const [mode, background] = themes[id];
+      const dark = mode === "dark";
+      document.documentElement.dataset.theme = id;
       document.documentElement.classList.toggle("dark", dark);
       document.documentElement.style.colorScheme = dark ? "dark" : "light";
       document.querySelector('meta[name="theme-color"]').setAttribute(
         "content",
-        dark ? "#22262c" : "#ffffff",
+        background,
       );
     })();
     </script>

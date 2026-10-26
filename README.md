@@ -111,21 +111,27 @@ those services. App state is separate from message history. No cursor or message
 journal is maintained. Views render state and forward intents; plain TypeScript
 controllers own access, keys, messaging, room setup and ephemeral drafts, with
 one owner each for HTTP, live invalidations, message visibility, theme/storage,
-browser location/history and clipboard. Bundled fonts require no CDN.
-System/Light/Dark selection persists as the choice ID; System follows live OS
-changes, with a pre-stylesheet head bootstrap to prevent a wrong-theme flash.
-Copying has a plain-HTTP fallback.
+browser location/history and clipboard. Bundled fonts require no CDN. The
+labelled **Theme: choice** header entry opens a native family-grouped picker on
+access/login and authenticated pages. System plus all 15 named Globnotes themes
+have actual conversation previews. Arrow keys/Home/End move focus without
+selecting; Enter/Space or a pointer activation immediately applies/persists the
+choice, keeping the picker open. Done/Escape closes it. System follows live OS
+changes and shows the current default; explicit names ignore OS. A
+pre-stylesheet head bootstrap and concrete-theme CSS prevent a wrong-theme
+flash. Saved legacy Light/Dark choices retain their meaning; denied storage
+keeps page-lifetime use. Copying has a plain-HTTP fallback.
 
 Shared room setup validates the whole intended contact set before allocation and
 verifies canonical encrypted Group/SELF/member facts afterward. Browser cookie
 routes (`POST /api/rooms` and `POST /api/rooms/:id/complete`) and MCP use this
 same service. Native Dialog owns DOM/focus only; app composition gives a
-shown-once key priority over an open room form without clearing its draft.
+shown-once key priority over Room/Theme without clearing their controller state.
 
-The desk uses the default Globnotes Light/Dark pair with derived readable text
-and control roles; [palette provenance](docs/palette.md) records the source and
-contrast policy. Native selects share one inset decorative chevron while the
-full native control retains pointer, keyboard and option semantics.
+The desk uses Globnotes' named catalog with derived readable text and control
+roles; [palette provenance](docs/palette.md) records the source and contrast
+policy. Native selects share one inset decorative chevron while the full native
+control retains pointer, keyboard and option semantics.
 
 ## Messaging in the browser
 
@@ -282,10 +288,11 @@ both intended stock peers, and a peer reply visible in browser and MCP history.
 Native form checks cover recovery, uncertainty, retained drafts, key-modal
 priority, checkbox/action geometry, and departure/logout epochs. Browser checks
 complete Public/Password/TOTP setup and login/logout, paste a copied key into a
-real browser field, use/revoke that key through MCP, exercise all three
-themes/live OS/storage errors/keyboard, and compare head bootstrap timing to the
-browser's first paint. Only final full Login/Keys/Room light/dark screenshots
-are deliverables; private region-review captures remain artifacts.
+real browser field, use/revoke that key through MCP, exercise System/default
+modes and all named themes/live OS/storage errors/keyboard, and compare head
+bootstrap timing/computed colors to the browser's first paint. Only final full
+Login/Keys/Room/Theme screenshots are deliverables; private region-review
+captures remain artifacts.
 
 The service is intended for plain HTTP on the LAN. Cookies and API keys will
 travel unencrypted on that LAN; it is not intended for public exposure.

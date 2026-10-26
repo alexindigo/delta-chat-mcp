@@ -16,6 +16,7 @@ import { initialRoom, Rooms } from "./rooms.ts";
 
 export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
+  const appearance = themeControl(theme);
   const [accessState, publishAccess] = createSignal(initialAccess());
   const [keysState, publishKeys] = createSignal(initialKeys());
   const [messagingState, publishMessaging] = createSignal(initialMessaging());
@@ -70,6 +71,8 @@ export function appControl() {
       ? "key" as const
       : roomState().open
       ? "room" as const
+      : appearance.open()
+      ? "theme" as const
       : null;
   const dirty = () =>
     rooms.dirty || messaging.dirty ||
@@ -149,10 +152,13 @@ export function appControl() {
     waiting: () => routeState().default && !progress().next,
     logoutConfirm,
     page,
-    theme: themeControl(theme),
+    theme: appearance,
     config: () =>
       openCodeConfig(page.origin, accessState().session?.mode === "public"),
     actions: {
+      openTheme: () => {
+        if (!activeDialog()) appearance.show();
+      },
       newRoom: () => {
         if (!activeDialog()) rooms.open();
       },

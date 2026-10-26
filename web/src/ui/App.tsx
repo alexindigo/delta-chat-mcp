@@ -4,8 +4,9 @@ import type { AppControl } from "../app-control.ts";
 import type { AccessState } from "../access.ts";
 import type { KeysState } from "../keys.ts";
 import type { Screen } from "../location.ts";
-import type { ThemeChoice } from "../theme.ts";
-import { ThemeSwitch } from "./ThemeSwitch.tsx";
+import type { ThemeState } from "../theme.ts";
+import { ThemeDialog } from "./ThemeDialog.tsx";
+import { ThemeEntry } from "./ThemeSwitch.tsx";
 import { AccessScreen } from "./AccessScreen.tsx";
 import { KeysScreen } from "./KeysScreen.tsx";
 import { IdentityScreen } from "./IdentityScreen.tsx";
@@ -27,15 +28,15 @@ export function App(
     messaging: MessagingState;
     relays: RelayState;
     room: RoomState;
-    activeDialog: "key" | "room" | null;
+    activeDialog: "key" | "room" | "theme" | null;
     relayOptions: string[];
     progress: SetupProgress;
     waiting: boolean;
     routeError: string;
     logoutConfirm: boolean;
     config: string;
-    theme: ThemeChoice;
-    chooseTheme: (id: ThemeChoice) => void;
+    theme: ThemeState;
+    themeControl: AppControl["theme"];
     actions: AppControl["actions"];
   },
 ) {
@@ -47,7 +48,11 @@ export function App(
           <span>relay desk</span>
         </a>
         <div class="header-actions">
-          <ThemeSwitch choice={props.theme} choose={props.chooseTheme} />
+          <ThemeEntry
+            label={props.theme.label}
+            disabled={!!props.activeDialog}
+            open={props.actions.openTheme}
+          />
           <Show
             when={props.access.session?.authenticated &&
               props.access.session?.mode !== "public"}
@@ -226,7 +231,18 @@ export function App(
       <Show
         when={props.activeDialog === "key" ? props.keys.shown : null}
         fallback={
-          <Show when={props.activeDialog === "room"}>
+          <Show
+            when={props.activeDialog === "room"}
+            fallback={
+              <Show when={props.activeDialog === "theme"}>
+                <ThemeDialog
+                  state={props.theme}
+                  focused={props.themeControl.focused()}
+                  control={props.themeControl}
+                />
+              </Show>
+            }
+          >
             <RoomDialog state={props.room} actions={props.actions} />
           </Show>
         }

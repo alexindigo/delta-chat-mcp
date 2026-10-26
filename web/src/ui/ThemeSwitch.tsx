@@ -1,23 +1,16 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { For } from "solid-js";
-import type { ThemeChoice } from "../theme.ts";
-export function ThemeSwitch(
-  props: { choice: ThemeChoice; choose: (id: ThemeChoice) => void },
+export function ThemeEntry(
+  props: { label: string; disabled: boolean; open: () => void },
 ) {
   return (
-    <div class="theme-switch" role="group" aria-label="Color theme">
-      <For each={["system", "light", "dark"] as const}>
-        {(id) => (
-          <button
-            type="button"
-            data-theme={id}
-            aria-pressed={props.choice === id ? "true" : "false"}
-            onClick={() => props.choose(id)}
-          >
-            {id === "system" ? "System" : id === "light" ? "Light" : "Dark"}
-          </button>
-        )}
-      </For>
-    </div>
+    <button
+      type="button"
+      data-action="open-theme"
+      aria-haspopup="dialog"
+      disabled={props.disabled}
+      onClick={() => props.open()}
+    >
+      Theme: {props.label}
+    </button>
   );
 }

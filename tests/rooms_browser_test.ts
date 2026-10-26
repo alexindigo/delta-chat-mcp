@@ -238,7 +238,9 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
     });
     await shot(browser, evidence, "room-desktop-light");
     await key(browser, "Escape");
-    await click(browser, '[data-theme="dark"]');
+    await click(browser, '[data-action="open-theme"]');
+    await click(browser, '[data-theme-id="globnotes-dark"]');
+    await click(browser, '[data-action="theme-done"]');
     await click(browser, '.chat-index-header [data-action="new-room"]');
     await activeRoom(browser);
     assertEquals(
@@ -246,6 +248,13 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
       "Browser room draft",
     );
     await shot(browser, evidence, "room-desktop-dark");
+    await key(browser, "Escape");
+    await click(browser, '[data-action="open-theme"]');
+    await click(browser, '[data-theme-id="nord"]');
+    await click(browser, '[data-action="theme-done"]');
+    await click(browser, '.chat-index-header [data-action="new-room"]');
+    await activeRoom(browser);
+    await shot(browser, evidence, "room-desktop-nord");
     await click(browser, '[data-action="create-room"]');
     await poll(() =>
       browser.evaluate<boolean>(
@@ -315,7 +324,9 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
     });
     await shot(browser, evidence, "room-narrow-dark");
     await key(browser, "Escape");
-    await click(browser, '[data-theme="light"]');
+    await click(browser, '[data-action="open-theme"]');
+    await click(browser, '[data-theme-id="globnotes-light"]');
+    await click(browser, '[data-action="theme-done"]');
     await click(browser, '.narrow-room-entry [data-action="new-room"]');
     await activeRoom(browser);
     await measure();
@@ -391,6 +402,106 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
         "document.querySelector('[data-room-contact=\"42\"] input').checked",
       ),
       true,
+    );
+    // A second delayed shown-once response suspends Theme, preserving choice and
+    // roving focus independently of the retained room draft. Copy stays modal.
+    await key(browser, "Escape");
+    await click(browser, 'a[href="/keys"]');
+    const themeKeyStarted = Promise.withResolvers<void>(),
+      themeKeyRelease = Promise.withResolvers<void>();
+    releaseKey = () => themeKeyRelease.resolve();
+    service.app.apiKeys.create = async (name) => {
+      const value = await originalKey(name);
+      themeKeyStarted.resolve();
+      await themeKeyRelease.promise;
+      return value;
+    };
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('#key-name') && !document.querySelector('#key-name').disabled",
+      )
+    );
+    await type(browser, "#key-name", "Theme priority fixture");
+    await click(browser, '[data-action="create-key"]');
+    await deadline(themeKeyStarted.promise, 5000);
+    await click(browser, '[data-action="open-theme"]');
+    await click(browser, '[data-theme-id="dracula-alucard"]');
+    await key(browser, "End");
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.activeElement?.dataset.themeId==='nord'",
+      )
+    );
+    releaseKey();
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('.key-handoff:modal') && !document.querySelector('.theme-dialog') && document.querySelectorAll('dialog:modal').length===1",
+      )
+    );
+    assert(
+      await browser.evaluate<boolean>(
+        "document.querySelector('[data-action=open-theme]').disabled",
+      ),
+    );
+    const themeSecret = await browser.evaluate<string>(
+      "document.querySelector('[data-once-key]').textContent",
+    );
+    await key(browser, "Escape");
+    await click(browser, '[data-action="copy-key"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "document.querySelector('.key-handoff [role=status]')?.textContent==='Key copied.'",
+      )
+    );
+    assert(
+      await browser.evaluate<boolean>(
+        "!!document.activeElement.closest('.key-handoff:modal')",
+      ),
+    );
+    await click(browser, '[data-action="dismiss-key"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('.theme-dialog:modal') && document.activeElement?.dataset.themeId==='nord'",
+      )
+    );
+    assertEquals(
+      await browser.evaluate(
+        "document.querySelector('[role=radio][aria-checked=true]').dataset.themeId",
+      ),
+      "dracula-alucard",
+    );
+    assertEquals(
+      await browser.evaluate(
+        "document.querySelectorAll('dialog:modal').length",
+      ),
+      1,
+    );
+    await key(browser, "Escape");
+    // Native paste of the key copied while Theme was suspended. No fixture key
+    // bytes are written to logs/screenshots.
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!!document.querySelector('#key-name') && !document.querySelector('#key-name').disabled",
+      )
+    );
+    await click(browser, "#key-name");
+    await key(browser, "a", 2);
+    await key(browser, "v", 2);
+    await poll(() =>
+      browser.evaluate<boolean>(
+        `document.querySelector('#key-name').value===${
+          JSON.stringify(themeSecret)
+        }`,
+      )
+    );
+    await key(browser, "a", 2);
+    await key(browser, "Backspace");
+    await click(browser, 'a[href="/chats"]');
+    await click(browser, '.chat-index-header [data-action="new-room"]');
+    await activeRoom(browser);
+    assertEquals(
+      await browser.evaluate("document.querySelector('#room-name').value"),
+      "Narrow room draft",
     );
     const reloading = browser.send("Page.reload");
     await pause(200);
@@ -474,6 +585,8 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
       narrow,
       sameIdCompletionNoNewCreate: true,
       keyPriorityAndRoomRestored: true,
+      keyPriorityAndThemeFocusChoiceRestored: true,
+      copiedWhileThemeSuspendedNativePaste: true,
       unknownNoBlindRetry: true,
       dirtyNativeDepartureAndLogout: true,
       lateLogoutCannotNavigate: true,
@@ -484,7 +597,7 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
         `${evidence}/failure.json`,
         JSON.stringify(
           await page.evaluate(
-            "({room:document.querySelector('.room-dialog')?.outerHTML,alerts:[...document.querySelectorAll('[role=alert]')].map(e=>e.textContent),errors:[]})",
+            "({room:document.querySelector('.room-dialog')?.outerHTML,modals:[...document.querySelectorAll('dialog:modal')].map(e=>e.className),focus:{tag:document.activeElement?.tagName,action:document.activeElement?.dataset.action,theme:document.activeElement?.dataset.themeId},themeRadios:[...document.querySelectorAll('.theme-dialog [role=radio]')].map(e=>({id:e.dataset.themeId,tab:e.tabIndex,checked:e.getAttribute('aria-checked')})),alerts:[...document.querySelectorAll('[role=alert]')].map(e=>e.textContent),errors:[]})",
           ),
           null,
           2,
