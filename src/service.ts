@@ -19,6 +19,7 @@ import { ApiKeys } from "./auth/api-keys.ts";
 import { McpSessions } from "./mcp/sessions.ts";
 import { createMcpServer } from "./mcp/server.ts";
 import { EventStreams } from "./http/event-streams.ts";
+import { PublicRelays } from "./messaging/relays.ts";
 
 export interface ServiceBag {
   streams?: EventStreams;
@@ -32,6 +33,7 @@ export interface ServiceBag {
   send: SendService;
   delete: DeleteService;
   events: ChangeHub;
+  relays: PublicRelays;
   log: Log;
   cfg: Omit<Config, "auth">;
   health(): { ok: boolean; core: "ready" | "restarting"; configured: boolean };
@@ -43,7 +45,12 @@ declare module "@pathfinder/pathfinder" {
 /** Reserve listener first; one owner joins rollback and every shutdown path. */
 export async function startService(
   cfg: Config,
-  options: { log?: Log; signals?: boolean; secretPinned?: boolean } = {},
+  options: {
+    log?: Log;
+    signals?: boolean;
+    secretPinned?: boolean;
+    relayFetch?: typeof fetch;
+  } = {},
 ) {
   const log = options.log ??
     createLog(cfg.log.level, [
@@ -58,6 +65,7 @@ export async function startService(
   let db: ReturnType<typeof openStateDb> | undefined;
   let mcp: McpSessions | undefined;
   let streams: EventStreams | undefined;
+  const relays = new PublicRelays(options.relayFetch);
   const http = serveHttp(cfg.listen, (request) => {
     if (closing || !handler) {
       return Response.json({ error: "Service unavailable" }, { status: 503 });
@@ -78,6 +86,7 @@ export async function startService(
     if (!shutdown) {
       shutdown = (async () => {
         streams?.close();
+        relays.close();
         const transports = await Promise.allSettled([mcp?.close()]);
         chats?.close();
         const results = await Promise.allSettled([
@@ -151,6 +160,7 @@ export async function startService(
       send: new SendService(core, account),
       delete: new DeleteService(core, account),
       events,
+      relays,
       log,
       cfg: {
         listen: { ...cfg.listen },

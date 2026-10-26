@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 export type Screen = "keys" | "identity" | "contacts" | "chats" | "status";
 export interface Route {
+  default: boolean;
   screen: Screen;
   chatId: number | null;
   error: string;
@@ -8,7 +9,7 @@ export interface Route {
 }
 export function route(url: URL): Route {
   const parts = url.pathname.split("/").filter(Boolean),
-    name = parts[0] ?? "keys";
+    name = parts[0] ?? "identity";
   const screen =
     (["keys", "identity", "contacts", "chats", "status"].includes(name)
       ? name
@@ -19,6 +20,7 @@ export function route(url: URL): Route {
   const valid = selected === null ||
     (/^[1-9][0-9]*$/.test(selected) && Number.isSafeInteger(Number(selected)));
   return {
+    default: parts.length === 0,
     screen,
     chatId: valid && selected !== null ? Number(selected) : null,
     error: !valid
@@ -79,6 +81,11 @@ export function browserLocation() {
       return current;
     },
     navigate,
+    resolveDefault(screen: Screen) {
+      if (!current.default) return;
+      history.replaceState(null, "", `/${screen}`);
+      emit();
+    },
     subscribe(fn: (value: Route) => void) {
       listeners.add(fn);
       return () => {

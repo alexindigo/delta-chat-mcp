@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
+import type { RelayState } from "../relays.ts";
 import type { MessagingState } from "../messaging.ts";
 import type { AppControl } from "../app-control.ts";
 import { InvitePanel } from "./InvitePanel.tsx";
 export function IdentityScreen(
-  props: { state: MessagingState; actions: AppControl["actions"] },
+  props: {
+    state: MessagingState;
+    relays: RelayState;
+    relayOptions: string[];
+    actions: AppControl["actions"];
+  },
 ) {
   return (
     <section class="identity-screen">
@@ -36,22 +42,61 @@ export function IdentityScreen(
                     event.currentTarget.value,
                   )}
               />
-              <label for="relay">Chatmail relay</label>
-              <input
-                id="relay"
-                required
-                placeholder="relay.example or DCACCOUNT:…"
-                value={props.state.relay}
-                onInput={(event) =>
-                  props.actions.identityField(
-                    "relay",
-                    event.currentTarget.value,
-                  )}
-              />
-              <p class="quiet">
-                Use a relay domain or its full DCACCOUNT invitation. A failed
-                attempt retries the same identity.
-              </p>
+              <label for="public-relay">Chatmail relay</label>
+              <select
+                id="public-relay"
+                value={props.relays.selected}
+                onChange={(event) =>
+                  props.actions.relaySelect(event.currentTarget.value)}
+              >
+                <For each={props.relayOptions}>
+                  {(domain) => <option value={domain}>{domain}</option>}
+                </For>
+                <option value="custom">Custom / private relay…</option>
+              </select>
+              <div class="relay-directory">
+                <button
+                  type="button"
+                  class="text-button"
+                  data-action="refresh-relays"
+                  disabled={props.relays.busy}
+                  onClick={() => props.actions.refreshRelays()}
+                >
+                  {props.relays.busy
+                    ? "Refreshing list…"
+                    : "Refresh public-relay list"}
+                </button>
+                <p class="quiet">
+                  Publicly listed by{" "}
+                  <a
+                    href={props.relays.catalog.source}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Chatmail
+                  </a>, included{" "}
+                  {props.relays.catalog.retrieved}. Listing does not guarantee
+                  registration or availability.
+                </p>
+                <p role="status">{props.relays.notice}</p>
+              </div>
+              <Show when={props.relays.selected === "custom"}>
+                <label for="relay">
+                  Custom relay domain or DCACCOUNT invitation
+                </label>
+                <input
+                  id="relay"
+                  required
+                  placeholder="relay.example or DCACCOUNT:…"
+                  value={props.relays.custom}
+                  onInput={(event) =>
+                    props.actions.relayCustom(event.currentTarget.value)}
+                />
+                <p class="quiet">
+                  Use a relay domain or its full DCACCOUNT invitation. A failed
+                  attempt retries the same identity.
+                </p>
+              </Show>
               <Show when={props.state.identityError}>
                 <p class="error" role="alert">{props.state.identityError}</p>
               </Show>

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import type { MessagingApi } from "./messaging-types.ts";
+import type { RelayApi } from "./relays.ts";
 export type AccessMode = "public" | "password" | "totp";
 export interface Session {
   setupRequired: boolean;
@@ -40,7 +41,7 @@ export interface Api {
   deleteKey(id: string): Promise<void>;
 }
 /** The only browser HTTP capability; all URLs are relative and cookies stay same-origin. */
-export function browserApi(): Api & MessagingApi {
+export function browserApi(): Api & MessagingApi & RelayApi {
   async function request<T>(
     path: string,
     method = "GET",
@@ -77,6 +78,8 @@ export function browserApi(): Api & MessagingApi {
     return response.status === 204 ? undefined as T : await response.json();
   }
   return {
+    relays: () => request("/api/relays"),
+    refreshRelays: () => request("/api/relays", "POST"),
     account: () => request("/api/account"),
     createIdentity: (input) => request("/api/account", "POST", input),
     invite: () => request("/api/account/invite"),

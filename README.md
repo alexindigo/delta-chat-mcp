@@ -118,13 +118,31 @@ plain-HTTP fallback.
 
 ## Messaging in the browser
 
-Open **Identity**, enter a display name and your chatmail relay domain or full
-`DCACCOUNT:` URI. An interrupted setup retries the same identity; form input is
-kept after errors. **Contacts** displays one core-generated invitation as both a
-scannable SVG and a copyable link. Scan it with Delta Chat, or paste a contact's
-invitation to join them. Email addresses alone are not pairing invitations.
-Contacts show the current core's **Key contact** and **Encryption available**
-state, and incoming requests offer **Accept** or **Block**.
+The default setup order is **Identity → Contacts → API keys → Chats** (Public
+mode skips keys). Progress follows actual core facts, not a separate setup
+record; loading/recovery waits for those facts. Explicit screen links remain
+available, existing keys are retained, and live progress offers a next action
+without moving you away from input.
+
+Open **Identity**, enter a display name and choose a publicly listed Chatmail
+relay. The bundled factual hostname/homepage snapshot comes from
+<https://chatmail.at/relays> (retrieved 2026-10-25), under
+`defaults/public-relays.json`. No website prose or artwork is redistributed and
+no site-wide license is asserted. Inclusion does not promise availability or
+open registration. The same-origin catalog is available offline immediately;
+explicit refresh fetches only that fixed HTML directory server-side, bounded to
+128 KiB and five seconds, retaining the last good list in memory on failure. It
+never probes providers or creates accounts. Actual account creation and
+messaging need network access. **Custom / private relay** accepts a domain or
+full `DCACCOUNT:` URI, preserved unchanged through refresh. Creation uses the
+existing single transport workflow, not automatic multi-relay selection.
+
+An interrupted setup retries the same identity; form input is kept after errors.
+**Contacts** displays one core-generated invitation as both a scannable SVG and
+a copyable link. Scan it with Delta Chat, or paste a contact's invitation to
+join them. Email addresses alone are not pairing invitations. Contacts show the
+current core's **Key contact** and **Encryption available** state, and incoming
+requests offer **Accept** or **Block**.
 
 Use a contact's **Chat** action or choose a conversation in **Chats**.
 Agent-created rooms appear live; browser room creation is outside this version.

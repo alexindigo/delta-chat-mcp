@@ -49,10 +49,25 @@ Deno.test("built product shell performs public setup and theme interaction on in
     await click(page, '[data-action="access-submit"]');
     await poll(() =>
       page.evaluate<boolean>(
-        "document.querySelector('h1')?.textContent === 'Agent access'",
+        "document.querySelector('h1')?.textContent === 'Relay identity'",
       )
     );
     assertEquals(service.app.auth.mode, "public");
+    assertEquals(
+      await page.evaluate("document.querySelector('#public-relay').value"),
+      "nine.testrun.org",
+    );
+    assert(
+      await page.evaluate<boolean>(
+        "document.querySelectorAll('#public-relay option').length > 20 && !document.querySelector('#relay')",
+      ),
+    );
+    await click(page, 'a[href="/keys"]');
+    await poll(() =>
+      page.evaluate<boolean>(
+        "document.querySelector('h1')?.textContent==='Agent access'",
+      )
+    );
     assert(
       await page.evaluate<boolean>(
         "document.body.textContent.includes('no API key is needed')",

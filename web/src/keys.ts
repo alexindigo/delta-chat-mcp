@@ -12,6 +12,7 @@ const present = (row: KeyRow): KeyView => ({
     : new Date(row.lastUsed).toLocaleString(),
 });
 export interface KeysState {
+  loaded: boolean;
   rows: KeyView[];
   name: string;
   shown: NewKey | null;
@@ -24,6 +25,7 @@ export interface KeysState {
   copyError: string;
 }
 export const initialKeys = (): KeysState => ({
+  loaded: false,
   rows: [],
   name: "",
   shown: null,
@@ -87,7 +89,7 @@ export class Keys {
     return this.run(async (generation) => {
       const { keys } = await this.api.keys();
       if (generation === this.#generation) {
-        this.patch({ rows: keys.map(present) });
+        this.patch({ rows: keys.map(present), loaded: true });
       }
     });
   }

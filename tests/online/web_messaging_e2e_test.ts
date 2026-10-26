@@ -207,6 +207,9 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
     await type(browser, "#password", "private-m3-browser-password");
     await click(browser, '[data-action="access-submit"]');
     await type(browser, "#display-name", " ");
+    await click(browser, "#public-relay");
+    await key(browser, "End");
+    await key(browser, "Enter");
     await type(browser, "#relay", "DCACCOUNT:ci-chatmail.testrun.org");
     await click(browser, '[data-action="create-identity"]');
     await poll(() =>

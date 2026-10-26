@@ -23,6 +23,7 @@ export interface MessagingState {
   creating: boolean;
   identityError: string;
   contacts: Contact[];
+  contactsLoaded: boolean;
   invite: Invite | null;
   qrUrl: string;
   link: string;
@@ -52,6 +53,7 @@ export const initialMessaging = (): MessagingState => ({
   creating: false,
   identityError: "",
   contacts: [],
+  contactsLoaded: false,
   invite: null,
   qrUrl: "",
   link: "",
@@ -157,7 +159,11 @@ export class Messaging {
             this.api.chats(),
           ]);
           if (epoch !== this.#epoch) return;
-          this.patch({ contacts: contacts.contacts, chats: chats.chats });
+          this.patch({
+            contacts: contacts.contacts,
+            chats: chats.chats,
+            contactsLoaded: true,
+          });
           if (!this.state.invite) {
             const invite = await this.api.invite();
             if (epoch !== this.#epoch) return;

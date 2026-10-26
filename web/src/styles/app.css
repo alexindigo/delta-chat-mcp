@@ -825,3 +825,44 @@ textarea {
 .key-handoff-copy [role="status"] {
   color: var(--accent);
 }
+
+select {
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--desk);
+  color: var(--ink);
+}
+.relay-directory p {
+  font-size: var(--text-small);
+  margin-bottom: 8px;
+}
+.setup-steps {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+}
+.setup-steps ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 36px;
+  padding-left: 20px;
+  margin: 0;
+}
+.setup-steps li {
+  padding-left: 4px;
+}
+.setup-steps li span {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--quiet);
+}
+.setup-next {
+  display: inline-block;
+  margin-top: 16px;
+  font-weight: 700;
+}

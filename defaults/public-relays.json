@@ -1,0 +1,45 @@
+{
+  "source": "https://chatmail.at/relays",
+  "retrieved": "2026-10-25",
+  "relays": [
+    { "domain": "nine.testrun.org", "homepage": "https://nine.testrun.org/" },
+    { "domain": "mailchat.pl", "homepage": "https://mailchat.pl/" },
+    {
+      "domain": "chatmail.woodpeckersnest.space",
+      "homepage": "https://chatmail.woodpeckersnest.space/"
+    },
+    {
+      "domain": "chatmail.culturanerd.it",
+      "homepage": "https://chatmail.culturanerd.it/"
+    },
+    {
+      "domain": "chat.adminforge.de",
+      "homepage": "https://chat.adminforge.de/"
+    },
+    {
+      "domain": "chika.aangat.lahat.computer",
+      "homepage": "https://chika.aangat.lahat.computer/"
+    },
+    { "domain": "tarpit.fun", "homepage": "https://tarpit.fun/" },
+    { "domain": "d.gaufr.es", "homepage": "https://d.gaufr.es/" },
+    { "domain": "chtml.ca", "homepage": "https://chtml.ca/" },
+    { "domain": "chatmail.au", "homepage": "https://chatmail.au/" },
+    { "domain": "e2ee.wang", "homepage": "https://e2ee.wang/" },
+    {
+      "domain": "chat.privittytech.com",
+      "homepage": "https://chat.privittytech.com/"
+    },
+    { "domain": "e2ee.im", "homepage": "https://e2ee.im/" },
+    { "domain": "chatmail.email", "homepage": "https://chatmail.email/" },
+    { "domain": "chat.in-the.eu", "homepage": "https://chat.in-the.eu/" },
+    { "domain": "chat.nuvon.app", "homepage": "https://chat.nuvon.app/" },
+    { "domain": "nibblehole.com", "homepage": "https://nibblehole.com/" },
+    { "domain": "chat.sus.fr", "homepage": "https://chat.sus.fr/" },
+    { "domain": "delta.thelab.uno", "homepage": "https://delta.thelab.uno/" },
+    { "domain": "chat.vim.wtf", "homepage": "https://chat.vim.wtf/" },
+    { "domain": "uninterest.ing", "homepage": "https://uninterest.ing/" },
+    { "domain": "sweetfern.net", "homepage": "https://sweetfern.net/" },
+    { "domain": "delta.disobey.net", "homepage": "https://delta.disobey.net/" },
+    { "domain": "toque.im", "homepage": "https://toque.im/" }
+  ]
+}

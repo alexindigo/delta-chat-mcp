@@ -10,6 +10,8 @@ import { themeControl } from "./theme-control.ts";
 import { initialMessaging, Messaging } from "./messaging.ts";
 import { BrowserEvents } from "./events.ts";
 import { historyViewport, Presentation } from "./presentation.ts";
+import { initialRelays, Relays } from "./relays.ts";
+import { setupProgress } from "./onboarding.ts";
 
 export function appControl() {
   const api = browserApi(), page = browserLocation(), theme = browserTheme();
@@ -17,11 +19,27 @@ export function appControl() {
   const [keysState, publishKeys] = createSignal(initialKeys());
   const [messagingState, publishMessaging] = createSignal(initialMessaging());
   const [logoutConfirm, setLogoutConfirm] = createSignal(false);
+  const [relayState, publishRelays] = createSignal(initialRelays());
+  const relays = new Relays(api, publishRelays);
+  const progress = () =>
+    setupProgress(
+      messagingState(),
+      keysState(),
+      accessState().session?.mode === "public",
+    );
+  const resolveLanding = () => {
+    if (!accessState().session?.authenticated) return;
+    const next = progress().next;
+    if (next) page.resolveDefault(next);
+  };
   let signedIn = false;
   const messaging = new Messaging(
     api,
     new BrowserEvents(),
-    publishMessaging,
+    (value) => {
+      publishMessaging(value);
+      resolveLanding();
+    },
     () => {
       void access.refresh();
     },
@@ -30,12 +48,15 @@ export function appControl() {
   );
   const presentation = new Presentation((ids) => messaging.presented(ids));
   const dirty = () =>
-    messaging.dirty || !!keys.state.shown || !!keys.state.name ||
+    messaging.dirty || (!messaging.state.account?.configured && relays.dirty) ||
+    !!keys.state.shown ||
+    !!keys.state.name ||
     keys.state.busy || !!access.state.password || !!access.state.code;
   page.protect(dirty);
   const logout = () => {
     setLogoutConfirm(false);
     keys.clear();
+    relays.clear();
     messaging.stop(true);
     signedIn = false;
     void access.logout();
@@ -48,13 +69,22 @@ export function appControl() {
       value.screen === "keys" && access.state.session?.authenticated &&
       access.state.session.mode !== "public"
     ) void keys.load();
+    resolveLanding();
   });
-  const keys = new Keys(api, copyText, publishKeys, () => {
+  const keys = new Keys(api, copyText, (value) => {
+    publishKeys(value);
+    resolveLanding();
+  }, () => {
     void access.refresh();
   });
   const access = new Access(api, publishAccess, (session) => {
     if (session.authenticated && !session.setupRequired) {
+      const starting = !signedIn;
       signedIn = true;
+      if (starting) {
+        void relays.load();
+        if (session.mode !== "public") void keys.load();
+      }
       messaging.select(
         page.current.screen === "chats" ? page.current.chatId : null,
       );
@@ -63,10 +93,7 @@ export function appControl() {
       signedIn = false;
       messaging.stop();
     }
-    if (
-      session.authenticated && session.mode !== "public" &&
-      page.screen === "keys"
-    ) void keys.load();
+    resolveLanding();
   });
   onSettled(() => {
     void access.refresh();
@@ -84,6 +111,13 @@ export function appControl() {
     keysState,
     routeState,
     messagingState,
+    relayState,
+    relayOptions: () => {
+      relayState();
+      return relays.options;
+    },
+    progress,
+    waiting: () => routeState().default && !progress().next,
     logoutConfirm,
     page,
     theme: themeControl(theme),
@@ -111,7 +145,16 @@ export function appControl() {
       identityField: (name: "relay" | "displayName", value: string) =>
         messaging.identityField(name, value),
       createIdentity: () => {
+        messaging.identityField("relay", relays.value);
         void messaging.create();
+      },
+      relaySelect: (value: string) => relays.select(value),
+      relayCustom: (value: string) => {
+        relays.custom(value);
+        messaging.identityField("relay", value);
+      },
+      refreshRelays: () => {
+        void relays.load(true);
       },
       invitation: (value: string) => messaging.link(value),
       joinContact: () => {

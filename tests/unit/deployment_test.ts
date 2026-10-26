@@ -81,6 +81,7 @@ Deno.test("allowlisted source permission boundary ignores restrictive extraction
       "deno.json",
       "deno.lock",
       "defaults/config.toml",
+      "defaults/public-relays.json",
       "src/module.ts",
       "web/src/view.tsx",
       "web/index.html",
@@ -107,7 +108,14 @@ Deno.test("allowlisted source permission boundary ignores restrictive extraction
       name,
     );
   }
-  for (const name of ["main.ts", "src/module.ts", "web/src/view.tsx"]) {
+  for (
+    const name of [
+      "main.ts",
+      "src/module.ts",
+      "web/src/view.tsx",
+      "defaults/public-relays.json",
+    ]
+  ) {
     assertEquals(
       (await Deno.stat(`${root}/candidate/${name}`)).mode! & 0o777,
       0o644,

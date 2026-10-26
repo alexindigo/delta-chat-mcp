@@ -2,7 +2,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild, type } from "./browser.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { deadline, fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -148,6 +148,9 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
     await key(browser, "Backspace");
     await click(browser, 'a[href="/identity"]');
     await type(browser, "#display-name", "Unsent name");
+    await click(browser, "#public-relay");
+    await key(browser, "End");
+    await key(browser, "Enter");
     await type(browser, "#relay", "relay.example");
     await click(browser, 'a[href="/contacts"]');
     const history = await browser.send("Page.getNavigationHistory"),
@@ -209,9 +212,19 @@ Deno.test("real browser preserves shown-once key and dirty forms across routes/h
       return value;
     };
     await click(browser, 'a[href="/keys"]');
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!document.querySelector('#key-name')?.disabled",
+      )
+    );
     await type(browser, "#key-name", "Late credential");
+    await poll(() =>
+      browser.evaluate<boolean>(
+        "!document.querySelector('[data-action=create-key]').disabled",
+      )
+    );
     await click(browser, '[data-action="create-key"]');
-    await keyStarted.promise;
+    await deadline(keyStarted.promise, 5000);
     await click(browser, '[data-action="logout"]');
     await click(browser, '[data-action="discard-logout"]');
     await poll(() =>

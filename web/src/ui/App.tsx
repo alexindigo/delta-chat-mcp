@@ -14,12 +14,19 @@ import { ChatScreen } from "./ChatScreen.tsx";
 import { StatusScreen } from "./StatusScreen.tsx";
 import { KeyHandoff } from "./KeyHandoff.tsx";
 import type { MessagingState } from "../messaging.ts";
+import type { RelayState } from "../relays.ts";
+import type { SetupProgress } from "../onboarding.ts";
+import { SetupSteps } from "./SetupSteps.tsx";
 export function App(
   props: {
     access: AccessState;
     keys: KeysState;
     screen: Screen;
     messaging: MessagingState;
+    relays: RelayState;
+    relayOptions: string[];
+    progress: SetupProgress;
+    waiting: boolean;
     routeError: string;
     logoutConfirm: boolean;
     config: string;
@@ -82,10 +89,10 @@ export function App(
               <nav class="nav-rail" aria-label="Relay">
                 <For
                   each={[
-                    { id: "keys", href: "/keys", label: "API keys" },
                     { id: "identity", href: "/identity", label: "Identity" },
                     { id: "contacts", href: "/contacts", label: "Contacts" },
                     { id: "chats", href: "/chats", label: "Chats" },
+                    { id: "keys", href: "/keys", label: "API keys" },
                     { id: "status", href: "/status", label: "Status" },
                   ]}
                 >
@@ -149,51 +156,59 @@ export function App(
                 <Show when={props.access.error}>
                   <p role="alert" class="error">{props.access.error}</p>
                 </Show>
+                <SetupSteps progress={props.progress} screen={props.screen} />
                 <Show
-                  when={props.screen === "keys"}
-                  fallback={
-                    <Show
-                      when={props.screen === "identity"}
-                      fallback={
-                        <Show
-                          when={props.screen === "contacts"}
-                          fallback={
-                            <Show
-                              when={props.screen === "chats"}
-                              fallback={
-                                <StatusScreen
-                                  state={props.messaging}
-                                  refresh={props.actions.refreshMessaging}
-                                />
-                              }
-                            >
-                              <ChatScreen
-                                state={props.messaging}
-                                actions={props.actions}
-                              />
-                            </Show>
-                          }
-                        >
-                          <ContactsScreen
-                            state={props.messaging}
-                            actions={props.actions}
-                          />
-                        </Show>
-                      }
-                    >
-                      <IdentityScreen
-                        state={props.messaging}
-                        actions={props.actions}
-                      />
-                    </Show>
-                  }
+                  when={!props.waiting}
+                  fallback={<p role="status">Checking setup…</p>}
                 >
-                  <KeysScreen
-                    state={props.keys}
-                    publicMode={props.access.session?.mode === "public"}
-                    config={props.config}
-                    actions={props.actions}
-                  />
+                  <Show
+                    when={props.screen === "keys"}
+                    fallback={
+                      <Show
+                        when={props.screen === "identity"}
+                        fallback={
+                          <Show
+                            when={props.screen === "contacts"}
+                            fallback={
+                              <Show
+                                when={props.screen === "chats"}
+                                fallback={
+                                  <StatusScreen
+                                    state={props.messaging}
+                                    refresh={props.actions.refreshMessaging}
+                                  />
+                                }
+                              >
+                                <ChatScreen
+                                  state={props.messaging}
+                                  actions={props.actions}
+                                />
+                              </Show>
+                            }
+                          >
+                            <ContactsScreen
+                              state={props.messaging}
+                              actions={props.actions}
+                            />
+                          </Show>
+                        }
+                      >
+                        <IdentityScreen
+                          state={props.messaging}
+                          relays={props.relays}
+                          relayOptions={props.relayOptions}
+                          actions={props.actions}
+                        />
+                      </Show>
+                    }
+                  >
+                    <KeysScreen
+                      state={props.keys}
+                      publicMode={props.access.session?.mode === "public"}
+                      config={props.config}
+                      actions={props.actions}
+                    />
+                  </Show>
                 </Show>
               </main>
             </div>
