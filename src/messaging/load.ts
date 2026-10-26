@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import type { CoreMessage, CoreRpc } from "../core/client.ts";
 
+export class MessageLoadError extends Error {
+  constructor() {
+    super("Unable to load existing message");
+    this.name = "MessageLoadError";
+  }
+}
+
 /** Both history and status distinguish a concurrent delete from a load failure. */
 export async function loadMessages(
   rpc: CoreRpc,
@@ -14,7 +21,7 @@ export async function loadMessages(
   );
   if (
     missing.length && (await rpc.getExistingMsgIds(account, missing)).length
-  ) throw new Error("Unable to load existing message");
+  ) throw new MessageLoadError();
   return new Map(ids.flatMap((id) => {
     const message = loaded[id];
     return !message || message.kind === "loadingError"

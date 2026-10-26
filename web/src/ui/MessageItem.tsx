@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { onCleanup, Show } from "solid-js";
 import type { Message } from "../messaging-types.ts";
+import type { AttachmentPresentation } from "../attachments.ts";
+import { MessageAttachment } from "./MessageAttachment.tsx";
 export function MessageItem(
   props: {
     message: Message;
@@ -9,6 +11,9 @@ export function MessageItem(
     selected: boolean;
     toggle: () => void;
     observe: (element: Element, id: number) => () => void;
+    image: AttachmentPresentation | undefined;
+    imageEvent: (src: string, failed: boolean) => void;
+    retryImage: () => void;
   },
 ) {
   let stop: (() => void) | undefined;
@@ -38,6 +43,11 @@ export function MessageItem(
           <time>{props.time}</time>
         </div>
         <p class="message-text">{props.message.text}</p>
+        <MessageAttachment
+          image={props.image}
+          event={props.imageEvent}
+          retry={props.retryImage}
+        />
         <Show when={props.message.hasAttachment}>
           <p class="message-attachment">
             Attachment: {props.message.attachmentName ?? "Unnamed attachment"}

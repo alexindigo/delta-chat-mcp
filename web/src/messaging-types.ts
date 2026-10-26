@@ -54,6 +54,17 @@ export interface Message {
   hasAttachment: boolean;
   encrypted: boolean;
   attachmentName?: string;
+  inlineImage?: {
+    mimeType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+    width?: number;
+    height?: number;
+  };
+  attachmentDownloadState?:
+    | "Done"
+    | "Available"
+    | "InProgress"
+    | "Failure"
+    | "Undecipherable";
 }
 export interface Invite {
   link: string;

@@ -61,6 +61,27 @@ export async function startTestPeer(
     },
     importCard: (accountId: number, card: string) =>
       bounded(client.rpc.importVcardContents(accountId, card), 10000),
+    sendImage: (
+      accountId: number,
+      chatId: number,
+      file: string,
+      filename: string,
+      text: string,
+    ) =>
+      bounded(
+        client.rpc.sendMsg(accountId, chatId, {
+          text,
+          html: null,
+          viewtype: "Image",
+          file,
+          filename,
+          location: null,
+          overrideSenderName: null,
+          quotedMessageId: null,
+          quotedText: null,
+        }),
+        10000,
+      ),
     sendFile: (
       accountId: number,
       chatId: number,

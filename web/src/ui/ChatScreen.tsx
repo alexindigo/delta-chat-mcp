@@ -38,15 +38,20 @@ function History(
           </p>
         }
       >
-        <For each={props.state.messages}>
+        {/* Canonical refetches replace DTOs, not native media/selection lifetimes. */}
+        <For each={props.state.messages} keyed={(message) => message.id}>
           {(message) => (
             <MessageItem
-              message={message}
-              sender={sender(message, props.state.contacts)}
-              time={messageTime(message.timestamp)}
-              selected={props.state.selected.includes(message.id)}
-              toggle={() => props.actions.toggleMessage(message.id)}
+              message={message()}
+              sender={sender(message(), props.state.contacts)}
+              time={messageTime(message().timestamp)}
+              selected={props.state.selected.includes(message().id)}
+              toggle={() => props.actions.toggleMessage(message().id)}
               observe={props.actions.observeMessage}
+              image={props.state.attachments[message().id]}
+              imageEvent={(src, failed) =>
+                props.actions.imageEvent(message().id, src, failed)}
+              retryImage={() => props.actions.retryImage(message().id)}
             />
           )}
         </For>

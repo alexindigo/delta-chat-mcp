@@ -903,3 +903,21 @@ textarea {
   margin-top: 16px;
   font-weight: 700;
 }
+
+.message-media img {
+  display: block;
+  height: auto;
+  max-width: min(100%, 28rem);
+  max-height: 22rem;
+  object-fit: contain;
+  margin-block: 8px;
+  border-radius: var(--control-radius);
+}
+.message-media-status {
+  font-size: var(--text-small);
+  color: var(--quiet);
+  margin-block: 8px;
+}
+.message-media .image-retry {
+  font-size: var(--text-small);
+}

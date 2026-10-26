@@ -152,11 +152,29 @@ requests offer **Accept** or **Block**.
 Use a contact's **Chat** action or choose a conversation in **Chats**.
 Agent-created rooms appear live; browser room creation is outside this version.
 History pages load upwards. Enter sends, Shift+Enter adds a line; delivery/read
-status comes from core. Incoming attachments display their name only. Selected
-deletion is explicit and local to this identity. GET inspection does not mark
-messages seen; only messages presented in the visible conversation send browser
-read receipts. Reading in either interface leaves the same history available to
-the other.
+status comes from core. Downloaded core JPEG/PNG/WebP images, GIFs and eligible
+stickers render inline with their caption and filename. Other attachments retain
+their filename fallback; partial, failed and undecipherable downloads show their
+actual state without automatically downloading. A broken image retains its
+message and offers up to two explicit retries. Selected deletion is explicit and
+local to this identity. GET inspection does not mark messages seen; only
+messages presented in the visible conversation send browser read receipts.
+Reading in either interface leaves the same history available to the other.
+
+Private image bytes use cookie-authenticated `GET /api/messages/:id/image`,
+never raw blob paths or filename URLs. Core metadata and delivery share one
+format policy. Each request rechecks current existence and the core-provided
+blob root, regular-file containment, size and raster signature, then streams the
+same opened handle with no-store, nosniff and same-origin resource policy. HEAD
+is deliberately 405; Range is ignored (complete 200). Native stream ownership
+closes the handle on EOF/cancel; image inspection never sends read receipts.
+Missing-blob metadata errors remain load errors, distinct from deletion. The
+private service-owned data directory is trusted against same-UID filesystem
+swaps; this is not an atomic hostile-writer defense or a full image decoder. The
+browser viewport owner tracks a visible-message anchor across paging and delayed
+image sizing. History rows are keyed by core message ID, so metadata refreshes
+update existing native images and selection controls instead of refetching media
+or replacing an interaction target.
 
 One bounded SSE stream sends coalesced change hints, not another message
 journal. Every reconnect/boot handshake refetches canonical core state.

@@ -4,6 +4,8 @@ import { z } from "zod";
 import { CoreUnavailable } from "../core/client.ts";
 import { IdentityRequired } from "../messaging/account.ts";
 import { UnknownMessageAnchor } from "../messaging/chats.ts";
+import { MessageLoadError } from "../messaging/load.ts";
+import { AttachmentError } from "../messaging/attachments.ts";
 
 export const id = z.coerce.number().int().positive().max(
   Number.MAX_SAFE_INTEGER,
@@ -47,6 +49,12 @@ export function messagingRoute(
       else if (error instanceof CoreUnavailable) {
         status = 503;
         message = "Core restarting. Retry when ready.";
+      } else if (error instanceof MessageLoadError) {
+        status = 503;
+        message = "Unable to load message. Retry when ready.";
+      } else if (error instanceof AttachmentError) {
+        status = error.status;
+        message = error.message;
       } else if (error instanceof IdentityRequired) {
         status = 409;
         message = "Configure the relay identity first.";

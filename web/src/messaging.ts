@@ -12,6 +12,7 @@ import type {
 import type { EventFeed } from "./events.ts";
 import { Drafts } from "./composer.ts";
 import { connectivity } from "./status.ts";
+import { type AttachmentPresentation, Attachments } from "./attachments.ts";
 export interface MessagingState {
   account: Account | null;
   stream: boolean;
@@ -34,6 +35,7 @@ export interface MessagingState {
   chatId: number | null;
   chat: ChatDetail | null;
   messages: Message[];
+  attachments: Record<number, AttachmentPresentation>;
   historyBusy: boolean;
   hasEarlier: boolean;
   draft: string;
@@ -64,6 +66,7 @@ export const initialMessaging = (): MessagingState => ({
   chatId: null,
   chat: null,
   messages: [],
+  attachments: {},
   historyBusy: false,
   hasEarlier: true,
   draft: "",
@@ -75,6 +78,7 @@ export const initialMessaging = (): MessagingState => ({
 export class Messaging {
   state = initialMessaging();
   readonly drafts = new Drafts();
+  readonly attachments = new Attachments();
   #epoch = 0;
   #selection = 0;
   #historyRequest = 0;
@@ -122,6 +126,7 @@ export class Messaging {
     this.#dirty = false;
     this.#sent.clear();
     this.#sendingChats.clear();
+    this.attachments.clear();
     if (clear) {
       this.drafts.clear();
       this.state = initialMessaging();
@@ -189,10 +194,12 @@ export class Messaging {
     const selection = ++this.#selection;
     this.#wanted = 30;
     this.#sent.clear();
+    this.attachments.clear();
     this.patch({
       chatId,
       chat: null,
       messages: [],
+      attachments: {},
       draft: chatId ? this.drafts.get(chatId).text : "",
       sendError: "",
       sending: chatId ? this.#sendingChats.has(chatId) : false,
@@ -233,6 +240,7 @@ export class Messaging {
     this.patch({
       chat,
       messages: unique,
+      attachments: this.attachments.reconcile(unique),
       hasEarlier,
       historyBusy: false,
       selected: this.state.selected.filter((id) =>
@@ -252,6 +260,18 @@ export class Messaging {
         this.patch({ historyBusy: false, error: this.failed(error) });
       }
     }
+  }
+  imageEvent(id: number, src: string, failed: boolean) {
+    this.attachments.event(id, src, failed);
+    this.patch({
+      attachments: this.attachments.reconcile(this.state.messages),
+    });
+  }
+  retryImage(id: number) {
+    this.attachments.retry(id);
+    this.patch({
+      attachments: this.attachments.reconcile(this.state.messages),
+    });
   }
   presented(ids: number[]) {
     const chat = this.state.chatId;

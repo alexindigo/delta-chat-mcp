@@ -20,6 +20,7 @@ import { McpSessions } from "./mcp/sessions.ts";
 import { createMcpServer } from "./mcp/server.ts";
 import { EventStreams } from "./http/event-streams.ts";
 import { PublicRelays } from "./messaging/relays.ts";
+import { AttachmentsService } from "./messaging/attachments.ts";
 
 export interface ServiceBag {
   streams?: EventStreams;
@@ -32,6 +33,7 @@ export interface ServiceBag {
   chats: ChatsService;
   send: SendService;
   delete: DeleteService;
+  attachments: AttachmentsService;
   events: ChangeHub;
   relays: PublicRelays;
   log: Log;
@@ -159,6 +161,11 @@ export async function startService(
       chats,
       send: new SendService(core, account),
       delete: new DeleteService(core, account),
+      attachments: new AttachmentsService(
+        core,
+        account,
+        join(cfg.data.dir, "accounts"),
+      ),
       events,
       relays,
       log,

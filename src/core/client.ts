@@ -30,6 +30,7 @@ const methods = [
   "getExistingMsgIds",
   "getMessage",
   "getMessages",
+  "getBlobDir",
   "markseenMsgs",
   "createChatByContactId",
   "miscSendTextMessage",

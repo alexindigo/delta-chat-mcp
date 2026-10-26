@@ -15,6 +15,7 @@ import type { Message } from "../../src/messaging/message.ts";
 import { Cdp } from "../cdp.ts";
 import { click, key, productBuild, type } from "../browser.ts";
 import { deadline, fixture, lanAddress, poll } from "../support.ts";
+import { decodedImage, imageFixtures } from "../image_fixtures.ts";
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function fill(page: Cdp, selector: string, text: string) {
   await click(page, selector);
@@ -526,6 +527,110 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
       ),
     );
     record("incomingAttachmentNameOnly");
+    // Keep TXT's original no-images proof above. Real encrypted raster messages
+    // follow it, from a separately owned stock peer, while outside the chat.
+    await click(browser, 'a[href="/contacts"]');
+    const fixtures = await imageFixtures(browser, `${root}/B`);
+    const images: {
+      id: number;
+      peerId: number;
+      caption: string;
+      format: string;
+      name: string;
+    }[] = [];
+    for (const format of ["jpeg", "png"]) {
+      const caption = `Received ${format.toUpperCase()} landscape`;
+      const peerId = await b.core.sendImage(
+        b.id,
+        sent.chatId,
+        fixtures[format],
+        `landscape.${format}`,
+        caption,
+      );
+      let received: Message | undefined;
+      await poll(async () => {
+        received = (await a.app.chats.messages(chatId, { limit: 100 })).find(
+          (m) => m.text === caption,
+        );
+        return !!received?.inlineImage;
+      }, 60000);
+      assert(received!.encrypted);
+      assertEquals(received!.inlineImage!.mimeType, `image/${format}`);
+      const response = await fetch(
+        `http://${lanAddress()}:${port}/api/messages/${received!.id}/image`,
+        { headers: { cookie }, signal: AbortSignal.timeout(10000) },
+      );
+      assertEquals(response.status, 200);
+      assertEquals(response.headers.get("cache-control"), "no-store");
+      assertEquals(response.headers.get("content-type"), `image/${format}`);
+      assert((await response.arrayBuffer()).byteLength > 0);
+      images.push({
+        id: received!.id,
+        peerId,
+        caption,
+        format,
+        name: received!.attachmentName ?? "Received image",
+      });
+    }
+    await pause(1500);
+    for (const image of images) {
+      assertEquals(
+        (await b.core.call((rpc) => rpc.getMessage(b!.id, image.peerId))).state,
+        26,
+      );
+    }
+    record("imageInspectionOutsideChatDeliveredNotRead", images);
+    await click(browser, `[data-contact-id="${bid}"] button`);
+    for (const image of images) {
+      await poll(() =>
+        browser.evaluate<boolean>(
+          `!!document.querySelector('[data-message-id="${image.id}"] img')?.naturalWidth`,
+        )
+      );
+      await browser.evaluate(
+        `document.querySelector('[data-message-id="${image.id}"]').scrollIntoView({block:'center'})`,
+      );
+      const decoded = await decodedImage(browser, image.id);
+      assert(decoded.visible && decoded.bounded && decoded.encrypted);
+      assertEquals([decoded.width, decoded.height], [240, 136]);
+      assertEquals(decoded.caption, image.caption);
+      assertEquals(decoded.src, `/api/messages/${image.id}/image`);
+      assertEquals(decoded.alt, image.name);
+      assert(
+        await browser.evaluate<boolean>(
+          `document.querySelector('[data-message-id="${image.id}"] .message-attachment').textContent.includes(${
+            JSON.stringify(image.name)
+          })`,
+        ),
+      );
+      await poll(
+        async () =>
+          (await b!.core.call((rpc) => rpc.getMessage(b!.id, image.peerId)))
+            .state === 28,
+        60000,
+      );
+      record(
+        `encrypted${image.format}ConsumerDecodeAndPresentationRead`,
+        decoded,
+      );
+    }
+    await click(browser, `[data-message-id="${images[1].id}"] input`);
+    await poll(() =>
+      browser.evaluate<boolean>(
+        `document.querySelector('[data-message-id="${
+          images[1].id
+        }"] input')?.checked===true`,
+      )
+    );
+    await click(browser, `[data-message-id="${images[1].id}"] input`);
+    await poll(() =>
+      browser.evaluate<boolean>(
+        `document.querySelector('[data-message-id="${
+          images[1].id
+        }"] input')?.checked===false`,
+      )
+    );
+    record("receivedImageNativeSelectionPreserved");
     const room = await tool<{ chat_id: number }>(client, "create_room", {
       name: "Agent session room",
       contact_ids: [bid],
@@ -675,6 +780,15 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
     );
     assertEquals(new Set(unique).size, unique.length);
     record("serviceRestartResyncNoDuplicatesDraftRetained");
+    for (const image of images) {
+      await poll(() =>
+        browser.evaluate<boolean>(
+          `!!document.querySelector('[data-message-id="${image.id}"] img')?.naturalWidth`,
+        )
+      );
+      assert((await decodedImage(browser, image.id)).width > 0);
+    }
+    record("imagesReconciledAfterChatSwitchAndServiceReconnect");
     await click(browser, '[data-action="send-message"]');
     await receive(b, "New input during send");
     await poll(() =>
@@ -777,6 +891,32 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
       60000,
     );
     record("desktopGeometry", await geometry(browser));
+    // Refetch older canonical history, then put actual received images in the
+    // final frames rather than handing over a text-only screenshot.
+    const showImages = async () => {
+      if (
+        !await browser.evaluate<boolean>(
+          `!!document.querySelector('[data-message-id="${images[0].id}"]')`,
+        )
+      ) {
+        await click(browser, '[data-action="earlier"]');
+      }
+      await poll(() =>
+        browser.evaluate<boolean>(
+          `!!document.querySelector('[data-message-id="${
+            images[0].id
+          }"] img')?.naturalWidth`,
+        )
+      );
+      await browser.evaluate(
+        `document.querySelector('[data-message-id="${
+          images[0].id
+        }"]').scrollIntoView({block:'start'})`,
+      );
+      await pause(100);
+      assert((await decodedImage(browser, images[0].id)).visible);
+    };
+    await showImages();
     const contactRegions = [
       ".app-header",
       ".nav-rail",
@@ -836,6 +976,7 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
           "!!document.querySelector('.message-history')",
         )
       );
+      await showImages();
     }
     record("fullContactsChatBothThemesCoreQrQuietZone");
     await browser.send("Emulation.setDeviceMetricsOverride", {
@@ -855,6 +996,24 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
     );
     assert(Math.abs(mobile.bottom - mobile.top) < .5);
     await browser.screenshot(`${evidence}/chat-narrow-working.png`);
+    await browser.evaluate(
+      `document.querySelector('[data-message-id="${
+        images[0].id
+      }"]').scrollIntoView({block:'start'})`,
+    );
+    for (const mode of ["light", "dark"]) {
+      await theme(browser, mode);
+      assert((await decodedImage(browser, images[0].id)).bounded);
+      await fullShot(browser, `${evidence}/chat-images-narrow-${mode}.png`, [
+        ".app-header",
+        ".nav-rail",
+        ".connection-status",
+        ".conversation-header",
+        ".message-history",
+        ".composer-row",
+        ".app-footer",
+      ]);
+    }
     await click(browser, ".chat-back");
     await poll(() =>
       browser.evaluate<boolean>(
@@ -874,13 +1033,30 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
         "document.querySelector('.conversation-header h2')?.textContent==='Phone fixture'",
       )
     );
+    await browser.evaluate("window.__beforeImageReload=true");
     await browser.send("Page.reload");
     await poll(() =>
       browser.evaluate<boolean>(
-        "document.querySelector('.conversation-header h2')?.textContent==='Phone fixture'",
+        "window.__beforeImageReload!==true && document.querySelector('.conversation-header h2')?.textContent==='Phone fixture' && document.querySelectorAll('[data-message-id]').length===30",
       )
     );
     record("queryDeepLinkAndReload");
+    await showImages();
+    record(
+      "receivedImageDecodesAfterDocumentReload",
+      await decodedImage(browser, images[0].id),
+    );
+    await a.app.delete.deleteMessages([images[0].id]);
+    const deletedImage = await fetch(
+      `http://${lanAddress()}:${port}/api/messages/${images[0].id}/image`,
+      { headers: { cookie }, signal: AbortSignal.timeout(10000) },
+    );
+    assertEquals(deletedImage.status, 404);
+    await deletedImage.body?.cancel();
+    assert(
+      (await history(b, sent.chatId)).some((m) => m.id === images[0].peerId),
+    );
+    record("deletedImageNoLongerServedPeerRetainsOriginal");
     await browser.send("Page.navigate", {
       url: `${origin}/chats?chat=invalid`,
     });

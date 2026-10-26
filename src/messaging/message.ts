@@ -5,6 +5,7 @@ import {
   type MessageState,
   messageState,
 } from "../core/client.ts";
+import { type InlineImage, inlineImage } from "./attachment-policy.ts";
 export interface Message {
   id: number;
   chatId: number;
@@ -16,6 +17,8 @@ export interface Message {
   hasAttachment: boolean;
   encrypted: boolean;
   attachmentName?: string;
+  inlineImage?: InlineImage;
+  attachmentDownloadState?: CoreMessage["downloadState"];
 }
 export function toMessage(message: CoreMessage): Message {
   return {
@@ -29,5 +32,9 @@ export function toMessage(message: CoreMessage): Message {
     hasAttachment: message.file !== null || message.fileName !== null,
     encrypted: message.showPadlock,
     ...(message.fileName !== null ? { attachmentName: message.fileName } : {}),
+    ...(inlineImage(message) ? { inlineImage: inlineImage(message) } : {}),
+    ...(message.downloadState
+      ? { attachmentDownloadState: message.downloadState }
+      : {}),
   };
 }

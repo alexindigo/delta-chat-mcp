@@ -193,6 +193,9 @@ export function appControl() {
       observeMessage: (element: Element, id: number) =>
         presentation.observe(element, id),
       bindHistory: historyViewport,
+      imageEvent: (id: number, src: string, failed: boolean) =>
+        messaging.imageEvent(id, src, failed),
+      retryImage: (id: number) => messaging.retryImage(id),
       composerKey: (event: KeyboardEvent) => {
         if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
           event.preventDefault();

@@ -7,8 +7,13 @@ declare module "@pathfinder/pathfinder" {
   }
 }
 const middleware: Middleware = async (request, { app, meta }) => {
+  const reject = (error: string, status: number) =>
+    Response.json({ error }, {
+      status,
+      headers: { "cache-control": "no-store" },
+    });
   if (meta.auth !== false && app.auth.setupRequired) {
-    return Response.json({ error: "Setup required" }, { status: 503 });
+    return reject("Setup required", 503);
   }
   if (app.auth.mode === "public") return;
   const mutating = !["GET", "HEAD", "OPTIONS"].includes(request.method);
@@ -26,9 +31,9 @@ const middleware: Middleware = async (request, { app, meta }) => {
   if (
     (mutating && request.headers.get("origin") !== origin) ||
     (streaming && streamOrigin !== origin)
-  ) return Response.json({ error: "Origin not allowed" }, { status: 403 });
+  ) return reject("Origin not allowed", 403);
   if (meta.auth !== false && !await app.auth.authenticated(request._raw)) {
-    return Response.json({ error: "Authentication required" }, { status: 401 });
+    return reject("Authentication required", 401);
   }
 };
 export default middleware;

@@ -41,6 +41,9 @@ export interface Api {
   deleteKey(id: string): Promise<void>;
 }
 /** The only browser HTTP capability; all URLs are relative and cookies stay same-origin. */
+export function messageImageUrl(id: number, attempt: number): string {
+  return `/api/messages/${id}/image${attempt ? `?retry=${attempt}` : ""}`;
+}
 export function browserApi(): Api & MessagingApi & RelayApi {
   async function request<T>(
     path: string,
