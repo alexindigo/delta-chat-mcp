@@ -25,16 +25,16 @@ export const GLOBNOTES_DARK = {
 export const THEMES = [
   {
     id: "globnotes-light",
-    label: "Globnotes Light",
-    family: "Globnotes",
+    label: "Default Light",
+    family: "Default",
     variant: "Light",
     mode: "light",
     colors: GLOBNOTES_LIGHT,
   },
   {
     id: "globnotes-dark",
-    label: "Globnotes Dark",
-    family: "Globnotes",
+    label: "Default Dark",
+    family: "Default",
     variant: "Dark",
     mode: "dark",
     colors: GLOBNOTES_DARK,
@@ -239,6 +239,12 @@ export type ThemeId = typeof THEMES[number]["id"];
 export const themeById = (id: ThemeId) =>
   THEMES.find((theme) => theme.id === id)!;
 
+/** Concrete defaults remain resolvable, but share the single System entry. */
+export const isDefaultTheme = (id: ThemeId) =>
+  themeById(id).family === "Default";
+export const pickerThemeId = (id: "system" | ThemeId) =>
+  id === "system" || isDefaultTheme(id) ? "system" : id;
+
 const channels = (hex: string) =>
   [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
 const luminance = (hex: string) =>
@@ -307,8 +313,16 @@ export const themePreviews = THEMES.map((theme) => ({
     ) => [`--${role}`, value]),
   ),
 }));
-export const themeFamilies = [...new Set(THEMES.map((theme) => theme.family))]
+export const defaultPreviews = themePreviews.filter((theme) =>
+  isDefaultTheme(theme.id)
+);
+export const selectableThemes = themePreviews.filter((theme) =>
+  !isDefaultTheme(theme.id)
+);
+export const themeFamilies = [
+  ...new Set(selectableThemes.map((theme) => theme.family)),
+]
   .map((label) => ({
     label,
-    themes: themePreviews.filter((theme) => theme.family === label),
+    themes: selectableThemes.filter((theme) => theme.family === label),
   }));

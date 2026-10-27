@@ -1,16 +1,20 @@
 # Globnotes palette provenance
 
-The relay desk ports all **15 named Globnotes themes in seven families**, plus
-System (the live default **Globnotes Light / Globnotes Dark** pair), adapted
-from `globnotes/client/themes.js` (Copyright © 2026 Alex Indigo, LGPL-3.0).
-Source read on 2026-10-26; SHA256:
+The relay desk retains all **15 concrete palettes**. The picker offers System as
+the single default entry (**Default Light / Default Dark** previews), plus 13
+schemes in six named families, adapted from `globnotes/client/themes.js`
+(Copyright © 2026 Alex Indigo, LGPL-3.0). Source read on 2026-10-26; SHA256:
 `c5dd479016c868de1a572c9ce361b8648ec5da9597b31eb4d438d28c85374774`. The
 accompanying `client/style.css` was consulted for semantic token use (SHA256
 `5b3f3a92b207bf1cb11c69c05ffb48ce276981132fc8492b3c6cb3fe55e0dced`). No
 framework, storage or event bus code is imported. The local catalog carries
-exact source IDs, labels, family/variant metadata and only these six consumed
-raw roles. Source `background-elevated` maps to `elevated`, `text-muted` to
-`muted`. Code/status/shadow roles not used by this product are not carried.
+exact source IDs, variant metadata and only these six consumed raw roles. Source
+`background-elevated` maps to `elevated`, `text-muted` to `muted`.
+Code/status/shadow roles not used by this product are not carried. The source
+base pair's public labels are Default Light / Default Dark; Globnotes remains
+its provenance, not a separate picker family. The palette owner defines one
+default-role predicate and selectable projection for groups, keyboard IDs,
+selected indicator and focus mapping.
 
 The picker adapts source `client/components/AppearanceSettingsPage.vue`
 keyboard, grouping and selected-marker semantics (SHA256
@@ -46,7 +50,11 @@ Static CSS covers every concrete ID via `html[data-theme]`; head metadata
 resolves ID/mode/background before styles or module execution. Contract tests
 reject drift between catalog, CSS, head and previews; native module-blocked
 paint probes inspect actual computed colors. Legacy saved `light`/`dark`
-normalize to the named default pair without rewriting storage on read. Explicit
-selection writes canonical IDs. Invalid values resolve to System; storage denial
+normalize to the concrete default pair without rewriting storage on read. Saved
+`globnotes-light`/`globnotes-dark` likewise stay fixed, ignoring OS changes.
+Their sole selected tile and focus target is System, with honest saved-fixed
+copy and an explicit invitation to select System to follow the device.
+Activating it writes `system`; there is no automatic migration. Other explicit
+selections write canonical IDs. Invalid values resolve to System; storage denial
 retains a page-lifetime choice. System remains System and follows OS live;
 explicit names ignore OS changes.

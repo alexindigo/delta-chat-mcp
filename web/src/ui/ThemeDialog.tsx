@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 // Picker semantics adapted from Globnotes AppearanceSettingsPage.vue (Alex Indigo).
 import { For, Show } from "solid-js";
-import { themeFamilies, themePreviews } from "../palette.ts";
+import { defaultPreviews, themeFamilies } from "../palette.ts";
 import type { ThemeChoice, ThemeState } from "../theme.ts";
 import type { themeControl } from "../theme-control.ts";
 import { Dialog } from "./Dialog.tsx";
@@ -73,9 +73,9 @@ export function ThemeDialog(props: {
           role="radio"
           class="theme-tile theme-system"
           data-theme-id="system"
-          aria-label="System (follows OS)"
+          aria-label={props.state.systemAriaLabel}
           aria-describedby="theme-system-description"
-          aria-checked={props.state.choice === "system" ? "true" : "false"}
+          aria-checked={props.state.selectedId === "system" ? "true" : "false"}
           tabindex={props.focused === "system" ? 0 : -1}
           autofocus={props.focused === "system"}
           ref={(element) => tiles.set("system", element)}
@@ -84,20 +84,23 @@ export function ThemeDialog(props: {
           onClick={() => props.control.choose("system")}
         >
           <span class="theme-system-pair">
-            <For each={themePreviews.slice(0, 2)}>
+            <For each={defaultPreviews}>
               {(theme) => (
-                <ConversationPreview vars={theme.vars} id={theme.id} />
+                <span class="theme-system-preview">
+                  <ConversationPreview vars={theme.vars} id={theme.id} />
+                  <span class="theme-system-caption">{theme.label}</span>
+                </span>
               )}
             </For>
           </span>
           <span class="theme-tile-label">
-            <span>System — follows your device</span>
-            <Show when={props.state.choice === "system"}>
+            <span>{props.state.systemEntryLabel}</span>
+            <Show when={props.state.selectedId === "system"}>
               <span aria-hidden="true">✓</span>
             </Show>
           </span>
           <span class="theme-system-description" id="theme-system-description">
-            Now showing {props.state.systemLabel}
+            {props.state.systemDescription}
           </span>
         </button>
         <For each={themeFamilies}>
@@ -117,7 +120,7 @@ export function ThemeDialog(props: {
                       class="theme-tile"
                       data-theme-id={theme.id}
                       aria-label={theme.label}
-                      aria-checked={props.state.choice === theme.id
+                      aria-checked={props.state.selectedId === theme.id
                         ? "true"
                         : "false"}
                       tabindex={props.focused === theme.id ? 0 : -1}
@@ -130,7 +133,7 @@ export function ThemeDialog(props: {
                       <ConversationPreview vars={theme.vars} id={theme.id} />
                       <span class="theme-tile-label">
                         <span>{theme.variant}</span>
-                        <Show when={props.state.choice === theme.id}>
+                        <Show when={props.state.selectedId === theme.id}>
                           <span aria-hidden="true">✓</span>
                         </Show>
                       </span>

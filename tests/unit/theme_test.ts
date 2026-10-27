@@ -6,6 +6,8 @@ import {
   GLOBNOTES_DARK,
   GLOBNOTES_LIGHT,
   palette,
+  pickerThemeId,
+  selectableThemes,
   themeFamilies,
   themePreviews,
   THEMES,
@@ -115,7 +117,7 @@ Deno.test("theme stores the choice id, follows OS live only in system and surviv
   changed();
   assertEquals(applied, "globnotes-light");
   assertEquals(theme.state.label, "System");
-  assertEquals(theme.state.systemLabel, "Globnotes Light");
+  assertEquals(theme.state.systemLabel, "Default Light");
   assertEquals((updates.at(-1) as { mode: string }).mode, "light");
   unavailable = true;
   theme.choose("globnotes-dark");
@@ -126,7 +128,7 @@ Deno.test("theme stores the choice id, follows OS live only in system and surviv
   changed();
   assertEquals(applied, "dracula-alucard");
   assertEquals(theme.state.label, "Dracula Alucard");
-  assertEquals(theme.state.systemLabel, "Globnotes Dark");
+  assertEquals(theme.state.systemLabel, "Default Dark");
   theme.close();
   assertEquals(stopped, true);
   let fallback = "";
@@ -145,13 +147,13 @@ Deno.test("theme stores the choice id, follows OS live only in system and surviv
   privateTheme.close();
 });
 
-Deno.test("source catalog has exact named metadata, seven families, aliases and invalid fallback", () => {
+Deno.test("source catalog retains concrete metadata with six selectable families, aliases and invalid fallback", () => {
   // Independently transcribed source metadata; no Globnotes runtime dependency.
   assertEquals(
     THEMES.map((t) => [t.id, t.label, t.family, t.variant, t.mode]),
     [
-      ["globnotes-light", "Globnotes Light", "Globnotes", "Light", "light"],
-      ["globnotes-dark", "Globnotes Dark", "Globnotes", "Dark", "dark"],
+      ["globnotes-light", "Default Light", "Default", "Light", "light"],
+      ["globnotes-dark", "Default Dark", "Default", "Dark", "dark"],
       ["dracula", "Dracula", "Dracula", "Dracula", "dark"],
       ["dracula-alucard", "Dracula Alucard", "Dracula", "Alucard", "light"],
       ["catppuccin-latte", "Catppuccin Latte", "Catppuccin", "Latte", "light"],
@@ -186,7 +188,6 @@ Deno.test("source catalog has exact named metadata, seven families, aliases and 
     ],
   );
   assertEquals(themeFamilies.map((f) => f.label), [
-    "Globnotes",
     "Dracula",
     "Catppuccin",
     "Solarized",
@@ -200,6 +201,12 @@ Deno.test("source catalog has exact named metadata, seven families, aliases and 
     assertEquals(themeChoice(invalid), "system");
   }
   for (const t of THEMES) assertEquals(themeChoice(t.id), t.id);
+  assertEquals(selectableThemes.length, 13);
+  assertEquals(themeFamilies.flatMap((f) => f.themes), selectableThemes);
+  assertEquals(
+    THEMES.map((t) => pickerThemeId(t.id)),
+    ["system", "system", ...selectableThemes.map((t) => t.id)],
+  );
   // Consumed source colors in brand/background/elevated/text/muted/border order.
   // Kept independently of the effective-role resolver/static copies.
   assertEquals(
@@ -229,4 +236,58 @@ Deno.test("source catalog has exact named metadata, seven families, aliases and 
       "#88c0d0 #2e3440 #3b4252 #d8dee9 #7b88a1 #434c5e",
     ],
   );
+});
+
+Deno.test("saved fixed default preferences retain storage and appearance until System is explicitly activated", () => {
+  for (const saved of ["light", "dark", "globnotes-light", "globnotes-dark"]) {
+    let stored = saved,
+      writes = 0,
+      osDark = !saved.endsWith("dark"),
+      applied = "";
+    let change = () => {};
+    const theme = new Theme({
+      read: () => stored,
+      write: (value) => {
+        stored = value;
+        writes++;
+      },
+      isDark: () => osDark,
+      watch: (listener) => {
+        change = listener;
+        return () => {};
+      },
+      apply: (id) => {
+        applied = id;
+      },
+    });
+    const fixed = saved.endsWith("dark") ? "Dark" : "Light";
+    assertEquals(theme.state.label, `Default ${fixed}`);
+    assertEquals(theme.state.selectedId, "system");
+    assertEquals(applied, `globnotes-${fixed.toLowerCase()}`);
+    osDark = !osDark;
+    change();
+    assertEquals(applied, `globnotes-${fixed.toLowerCase()}`);
+    assertEquals(stored, saved);
+    assertEquals(writes, 0);
+    assert(
+      theme.state.systemDescription.includes(`Saved fixed Default ${fixed}`),
+    );
+    assert(
+      theme.state.systemAriaLabel.includes(
+        "select System to follow your device",
+      ),
+    );
+    theme.choose("system");
+    assertEquals(writes, 1);
+    assertEquals(stored, "system");
+    osDark = !osDark;
+    change();
+    assertEquals(applied, osDark ? "globnotes-dark" : "globnotes-light");
+    assertEquals(theme.state.label, "System");
+    assertEquals(
+      theme.state.systemDescription,
+      `Now showing Default ${osDark ? "Dark" : "Light"}`,
+    );
+    theme.close();
+  }
 });

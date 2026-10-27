@@ -1,30 +1,32 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { createSignal } from "solid-js";
 import type { Theme, ThemeChoice } from "./theme.ts";
-import { THEMES } from "./palette.ts";
+import { pickerThemeId, selectableThemes } from "./palette.ts";
 export const themeIds: ThemeChoice[] = [
   "system",
-  ...THEMES.map((theme) => theme.id),
+  ...selectableThemes.map((theme) => theme.id),
 ];
 /** Plain picker workflow; the view owns only DOM focus. */
 export function themeControl(theme: Theme) {
   const [state, setState] = createSignal(theme.state);
   const [open, setOpen] = createSignal(false);
-  const [focused, setFocused] = createSignal<ThemeChoice>(theme.choice);
+  const [focused, setFocused] = createSignal<ThemeChoice>(
+    pickerThemeId(theme.choice),
+  );
   theme.subscribe(setState);
   return {
     state,
     open,
     focused,
     show() {
-      setFocused(theme.choice);
+      setFocused(pickerThemeId(theme.choice));
       setOpen(true);
     },
     close() {
       setOpen(false);
     },
     focus(id: ThemeChoice) {
-      setFocused(id);
+      setFocused(pickerThemeId(id));
     },
     move(id: ThemeChoice, key: string) {
       const index = themeIds.indexOf(id);
@@ -42,7 +44,7 @@ export function themeControl(theme: Theme) {
     },
     choose(id: ThemeChoice) {
       theme.choose(id);
-      setFocused(id);
+      setFocused(pickerThemeId(id));
     },
   };
 }

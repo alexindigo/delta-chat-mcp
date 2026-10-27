@@ -129,7 +129,13 @@ async function fullShot(page: Cdp, path: string, regions: string[]) {
   }
 }
 async function theme(page: Cdp, id: string) {
-  const choice = id === "light" || id === "dark" ? `globnotes-${id}` : id;
+  const defaultLook = id === "light" || id === "dark";
+  if (defaultLook) {
+    await page.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-color-scheme", value: id }],
+    });
+  }
+  const choice = defaultLook ? "system" : id;
   await click(page, '[data-action="open-theme"]');
   await click(page, `[data-theme-id="${choice}"]`);
   await poll(() =>

@@ -39,8 +39,11 @@ Deno.test("built product shell performs public setup and theme interaction on in
       )
     );
     assertEquals(await page.evaluate("isSecureContext"), false);
+    await page.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-color-scheme", value: "dark" }],
+    });
     await click(page, '[data-action="open-theme"]');
-    await click(page, '[data-theme-id="globnotes-dark"]');
+    await click(page, '[data-theme-id="system"]');
     await click(page, '[data-action="theme-done"]');
     await poll(() =>
       page.evaluate<boolean>(

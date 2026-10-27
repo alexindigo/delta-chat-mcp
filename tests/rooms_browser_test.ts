@@ -238,8 +238,11 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
     });
     await shot(browser, evidence, "room-desktop-light");
     await key(browser, "Escape");
+    await browser.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-color-scheme", value: "dark" }],
+    });
     await click(browser, '[data-action="open-theme"]');
-    await click(browser, '[data-theme-id="globnotes-dark"]');
+    await click(browser, '[data-theme-id="system"]');
     await click(browser, '[data-action="theme-done"]');
     await click(browser, '.chat-index-header [data-action="new-room"]');
     await activeRoom(browser);
@@ -324,8 +327,11 @@ Deno.test("native room form retains drafts/recovery/history, checkbox geometry, 
     });
     await shot(browser, evidence, "room-narrow-dark");
     await key(browser, "Escape");
+    await browser.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-color-scheme", value: "light" }],
+    });
     await click(browser, '[data-action="open-theme"]');
-    await click(browser, '[data-theme-id="globnotes-light"]');
+    await click(browser, '[data-theme-id="system"]');
     await click(browser, '[data-action="theme-done"]');
     await click(browser, '.narrow-room-entry [data-action="new-room"]');
     await activeRoom(browser);

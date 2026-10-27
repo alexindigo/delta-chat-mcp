@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { palette, themeById, type ThemeId, THEMES } from "./palette.ts";
+import {
+  isDefaultTheme,
+  palette,
+  pickerThemeId,
+  themeById,
+  type ThemeId,
+  THEMES,
+} from "./palette.ts";
 export type ThemeChoice = "system" | ThemeId;
 export interface ThemeState {
   choice: ThemeChoice;
@@ -7,6 +14,10 @@ export interface ThemeState {
   mode: "light" | "dark";
   label: string;
   systemLabel: string;
+  selectedId: ThemeChoice;
+  systemEntryLabel: string;
+  systemAriaLabel: string;
+  systemDescription: string;
 }
 export interface ThemePort {
   read(): string | null;
@@ -42,12 +53,25 @@ export class Theme {
     const systemId = this.port.isDark() ? "globnotes-dark" : "globnotes-light";
     const resolvedId = this.choice === "system" ? systemId : this.choice;
     const theme = themeById(resolvedId);
+    const fixedDefault = this.choice !== "system" &&
+      isDefaultTheme(this.choice);
+    const systemLabel = themeById(systemId).label;
     return {
       choice: this.choice,
       resolvedId,
       mode: theme.mode,
       label: this.choice === "system" ? "System" : theme.label,
-      systemLabel: themeById(systemId).label,
+      systemLabel,
+      selectedId: pickerThemeId(this.choice),
+      systemEntryLabel: fixedDefault
+        ? `Saved fixed ${theme.variant}`
+        : "System — follows your device",
+      systemAriaLabel: fixedDefault
+        ? `System (saved fixed ${theme.variant}; select System to follow your device)`
+        : "System (follows OS)",
+      systemDescription: fixedDefault
+        ? `Saved fixed ${theme.label}. Select System to follow your device.`
+        : `Now showing ${systemLabel}`,
     };
   }
   subscribe(listener: (state: ThemeState) => void) {

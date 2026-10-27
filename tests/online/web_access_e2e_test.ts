@@ -12,6 +12,7 @@ import { startService } from "../../src/service.ts";
 import { loadRuntimeConfig } from "../../src/auth/state.ts";
 import { createLog } from "../../src/log.ts";
 import type { AccessMode } from "../../web/src/api.ts";
+import { palette, type ThemeId } from "../../web/src/palette.ts";
 
 const pause = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -77,9 +78,9 @@ async function os(page: Cdp, value: "light" | "dark") {
   });
 }
 async function mode(page: Cdp, choice: string) {
-  const id = choice === "light" || choice === "dark"
-    ? `globnotes-${choice}`
-    : choice;
+  const defaultLook = choice === "light" || choice === "dark";
+  if (defaultLook) await os(page, choice);
+  const id = defaultLook ? "system" : choice;
   await click(page, '[data-action="open-theme"]');
   await click(page, `[data-theme-id="${id}"]`);
   await poll(() =>
@@ -89,7 +90,11 @@ async function mode(page: Cdp, choice: string) {
   );
   await click(page, '[data-action="theme-done"]');
 }
-async function dark(page: Cdp, expected: boolean) {
+async function dark(
+  page: Cdp,
+  expected: boolean,
+  id: ThemeId = expected ? "globnotes-dark" : "globnotes-light",
+) {
   await poll(() =>
     page.evaluate<boolean>(
       `document.documentElement.classList.contains('dark') === ${expected}`,
@@ -99,7 +104,11 @@ async function dark(page: Cdp, expected: boolean) {
     await page.evaluate(
       "getComputedStyle(document.documentElement).backgroundColor",
     ),
-    expected ? "rgb(34, 38, 44)" : "rgb(255, 255, 255)",
+    `rgb(${
+      [1, 3, 5].map((i) => parseInt(palette(id).desk.slice(i, i + 2), 16)).join(
+        ", ",
+      )
+    })`,
   );
   assertEquals(
     await page.evaluate("document.documentElement.style.colorScheme"),
@@ -109,7 +118,7 @@ async function dark(page: Cdp, expected: boolean) {
     await page.evaluate(
       "document.querySelector('meta[name=\"theme-color\"]').content",
     ),
-    expected ? "#22262c" : "#ffffff",
+    palette(id).desk,
   );
 }
 
@@ -309,25 +318,25 @@ async function prove(modeId: AccessMode, captures: boolean) {
         )
       );
       await page.evaluate("document.querySelector('#paste-probe').remove()");
-      await mode(page, "light");
-      await dark(page, false);
+      await mode(page, "solarized-light");
+      await dark(page, false, "solarized-light");
       await page.send("Page.reload");
       await ready(page, "Agent access");
-      await dark(page, false);
+      await dark(page, false, "solarized-light");
       assertEquals(
         await page.evaluate("localStorage.getItem('delta-chat-mcp-theme')"),
-        "globnotes-light",
+        "solarized-light",
       );
       await mode(page, "system");
       await os(page, "light");
       await dark(page, false);
       await os(page, "dark");
       await dark(page, true);
-      await mode(page, "dark");
+      await mode(page, "solarized-dark");
       await os(page, "light");
       await page.send("Page.reload");
       await ready(page, "Agent access");
-      await dark(page, true);
+      await dark(page, true, "solarized-dark");
       await poll(() =>
         page.evaluate<boolean>(
           "window.__themeProof.paints.some(p=>p.name==='first-paint')",
@@ -354,7 +363,7 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await key(page, "ArrowRight");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.activeElement?.getAttribute('data-theme-id') === 'globnotes-light'",
+          "document.activeElement?.getAttribute('data-theme-id') === 'dracula'",
         )
       );
       assert(
@@ -365,26 +374,26 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await key(page, "Enter");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.querySelector('[data-theme-id=globnotes-light]').getAttribute('aria-checked')==='true'",
+          "document.querySelector('[data-theme-id=dracula]').getAttribute('aria-checked')==='true'",
         )
       );
-      await dark(page, false);
+      await dark(page, true, "dracula");
       await key(page, "ArrowRight");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.activeElement?.getAttribute('data-theme-id')==='globnotes-dark'",
+          "document.activeElement?.getAttribute('data-theme-id')==='dracula-alucard'",
         )
       );
       await key(page, "Enter");
       await poll(() =>
         page.evaluate<boolean>(
-          "document.querySelector('[data-theme-id=globnotes-dark]').getAttribute('aria-checked')==='true'",
+          "document.querySelector('[data-theme-id=dracula-alucard]').getAttribute('aria-checked')==='true'",
         )
       );
-      await dark(page, true);
+      await dark(page, false, "dracula-alucard");
       assertEquals(
         await page.evaluate("localStorage.getItem('delta-chat-mcp-theme')"),
-        "globnotes-dark",
+        "dracula-alucard",
       );
       await click(page, '[data-action="theme-done"]');
       facts.keyboardTheme = true;
@@ -396,10 +405,10 @@ async function prove(modeId: AccessMode, captures: boolean) {
       await page.send("Page.reload");
       await ready(page, "Agent access");
       await dark(page, true);
-      await mode(page, "light");
-      await dark(page, false);
+      await mode(page, "solarized-light");
+      await dark(page, false, "solarized-light");
       await os(page, "dark");
-      await dark(page, false);
+      await dark(page, false, "solarized-light");
       facts.storageErrorsHandled = true;
       await page.send("Page.removeScriptToEvaluateOnNewDocument", {
         identifier: blocked.identifier,

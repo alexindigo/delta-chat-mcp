@@ -113,14 +113,18 @@ controllers own access, keys, messaging, room setup and ephemeral drafts, with
 one owner each for HTTP, live invalidations, message visibility, theme/storage,
 browser location/history and clipboard. Bundled fonts require no CDN. The
 labelled **Theme: choice** header entry opens a native family-grouped picker on
-access/login and authenticated pages. System plus all 15 named Globnotes themes
-have actual conversation previews. Arrow keys/Home/End move focus without
-selecting; Enter/Space or a pointer activation immediately applies/persists the
-choice, keeping the picker open. Done/Escape closes it. System follows live OS
-changes and shows the current default; explicit names ignore OS. A
-pre-stylesheet head bootstrap and concrete-theme CSS prevent a wrong-theme
-flash. Saved legacy Light/Dark choices retain their meaning; denied storage
-keeps page-lifetime use. Copying has a plain-HTTP fallback.
+access/login and authenticated pages. System is the single default entry, with
+Default Light / Default Dark conversation previews; 13 other schemes are grouped
+in six named families. Arrow keys/Home/End move focus without selecting;
+Enter/Space or a pointer activation immediately applies/persists the choice,
+keeping the picker open. Done/Escape closes it. System follows live OS changes
+and shows the current default; explicit names ignore OS. A pre-stylesheet head
+bootstrap and concrete-theme CSS prevent a wrong-theme flash. Saved legacy
+Light/Dark and globnotes-light/dark choices stay fixed without rewriting
+storage. Their header reads Default Light/Dark, and the selected System tile
+explains the saved fixed appearance; activating it explicitly follows the
+device. Denied storage keeps page-lifetime use. Copying has a plain-HTTP
+fallback.
 
 Shared room setup validates the whole intended contact set before allocation and
 verifies canonical encrypted Group/SELF/member facts afterward. Browser cookie
