@@ -14,7 +14,13 @@ import type { CoreMessage } from "../../src/core/client.ts";
 import type { Message } from "../../src/messaging/message.ts";
 import { Cdp } from "../cdp.ts";
 import { click, key, productBuild, type } from "../browser.ts";
-import { deadline, fixture, lanAddress, poll } from "../support.ts";
+import {
+  deadline,
+  evidenceDirectory,
+  fixture,
+  lanAddress,
+  poll,
+} from "../support.ts";
 import { decodedImage, imageFixtures } from "../image_fixtures.ts";
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function fill(page: Cdp, selector: string, text: string) {
@@ -170,11 +176,7 @@ Deno.test("real browser messaging: identity, invitations, requests, live encrypt
   assertEquals(Deno.env.get("CHATMAIL_DOMAIN"), "ci-chatmail.testrun.org");
   await productBuild();
   const root = await fixture("m3-online");
-  await Deno.mkdir("artifacts/m3", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/m3",
-    prefix: "messaging-",
-  });
+  const evidence = await evidenceDirectory("artifacts/m3", "messaging-");
   const reservation = Deno.listen({ hostname: "0.0.0.0", port: 0 }),
     port = reservation.addr.port;
   reservation.close();

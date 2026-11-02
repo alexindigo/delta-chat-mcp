@@ -2,7 +2,13 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild, type } from "./browser.ts";
-import { deadline, fixture, lanAddress, poll } from "./support.ts";
+import {
+  deadline,
+  evidenceDirectory,
+  fixture,
+  lanAddress,
+  poll,
+} from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -49,10 +55,7 @@ async function shot(page: Cdp, evidence: string, name: string) {
 Deno.test("native room form retains drafts/recovery/history, checkbox geometry, key priority and logout epochs on insecure HTTP", async () => {
   await productBuild();
   const root = await fixture("rooms-browser"),
-    evidence = await Deno.makeTempDir({
-      dir: "artifacts",
-      prefix: "rooms-browser-",
-    });
+    evidence = await evidenceDirectory("artifacts", "rooms-browser-");
   const service = await startService(
     loadRuntimeConfig({ DCMCP_DATA_DIR: root, DCMCP_LISTEN_PORT: "0" }).cfg,
     { log: createLog("error", [], () => {}) },

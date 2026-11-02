@@ -2,7 +2,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild, type } from "./browser.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { evidenceDirectory, fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -176,11 +176,7 @@ async function nativeSelect(page: Cdp) {
 }
 Deno.test("setup desk renders restrained light/dark palettes, readable controls and sharp bounded native handoff at desktop and 390px", async () => {
   await productBuild();
-  await Deno.mkdir("artifacts/setup-review", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-      dir: "artifacts/setup-review",
-      prefix: "visual-",
-    }),
+  const evidence = await evidenceDirectory("artifacts/setup-review", "visual-"),
     root = await fixture("setup-visual");
   let configured = false;
   const service = await startService(

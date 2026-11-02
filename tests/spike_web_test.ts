@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
-import { deadline, fixture, lanAddress, poll } from "./support.ts";
+import {
+  deadline,
+  evidenceDirectory,
+  fixture,
+  lanAddress,
+  poll,
+} from "./support.ts";
 
 async function buildWeb(evidence: string) {
   const child = new Deno.Command(Deno.execPath(), {
@@ -41,11 +47,7 @@ async function buildWeb(evidence: string) {
 }
 
 Deno.test("Solid 2 native build renders and reacts 0 → 1 in insecure non-loopback HTTP Chromium", async () => {
-  await Deno.mkdir("artifacts/m0", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/m0",
-    prefix: "web-",
-  });
+  const evidence = await evidenceDirectory("artifacts/m0", "web-");
   await buildWeb(evidence);
   const dist = new URL("../artifacts/m0/counter-dist/", import.meta.url);
   assert((await Deno.stat(new URL("index.html", dist))).isFile);

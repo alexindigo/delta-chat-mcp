@@ -34,6 +34,12 @@ export async function fixture(kind: string) {
   return await Deno.makeTempDir({ dir: root.pathname, prefix: "run-" });
 }
 
+/** Allocate independent evidence, including on a fresh artifact tree. */
+export async function evidenceDirectory(parent: string, prefix: string) {
+  await Deno.mkdir(parent, { recursive: true });
+  return await Deno.makeTempDir({ dir: parent, prefix });
+}
+
 /** Use the guest's real LAN interface; loopback cannot prove LAN HTTP. */
 export function lanAddress() {
   const iface = Deno.networkInterfaces().find((item) =>

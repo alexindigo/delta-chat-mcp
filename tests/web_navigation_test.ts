@@ -2,7 +2,13 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild, type } from "./browser.ts";
-import { deadline, fixture, lanAddress, poll } from "./support.ts";
+import {
+  deadline,
+  evidenceDirectory,
+  fixture,
+  lanAddress,
+  poll,
+} from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -10,11 +16,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 Deno.test("real browser preserves shown-once key and dirty forms across routes/history, protects logout and native reload", async () => {
   await productBuild();
   const root = await fixture("m3-navigation");
-  await Deno.mkdir("artifacts/m3", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/m3",
-    prefix: "navigation-",
-  });
+  const evidence = await evidenceDirectory("artifacts/m3", "navigation-");
   const service = await startService(
     loadRuntimeConfig({ DCMCP_DATA_DIR: root, DCMCP_LISTEN_PORT: "0" }).cfg,
     { log: createLog("error", [], () => {}) },

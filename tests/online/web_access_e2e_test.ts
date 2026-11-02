@@ -7,7 +7,13 @@ import {
 } from "@modelcontextprotocol/client";
 import { Cdp } from "../cdp.ts";
 import { click, key, productBuild, type } from "../browser.ts";
-import { deadline, fixture, lanAddress, poll } from "../support.ts";
+import {
+  deadline,
+  evidenceDirectory,
+  fixture,
+  lanAddress,
+  poll,
+} from "../support.ts";
 import { startService } from "../../src/service.ts";
 import { loadRuntimeConfig } from "../../src/auth/state.ts";
 import { createLog } from "../../src/log.ts";
@@ -137,11 +143,7 @@ const paintObserver = `(() => {
 
 async function prove(modeId: AccessMode, captures: boolean) {
   const root = await fixture(`m2-browser-${modeId}`);
-  await Deno.mkdir("artifacts/m2", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/m2",
-    prefix: `access-${modeId}-`,
-  });
+  const evidence = await evidenceDirectory("artifacts/m2", `access-${modeId}-`);
   const service = await startService(
     loadRuntimeConfig({
       DCMCP_DATA_DIR: `${root}/service`,

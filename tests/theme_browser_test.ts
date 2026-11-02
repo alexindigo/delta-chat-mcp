@@ -3,7 +3,7 @@ import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild } from "./browser.ts";
 import { palette, type ThemeId, THEMES } from "../web/src/palette.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { evidenceDirectory, fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -107,10 +107,7 @@ async function shot(page: Cdp, evidence: string, name: string) {
 
 Deno.test("themes paint correctly before module execution, retain fixed defaults and System behavior and render the access desk", async () => {
   await productBuild();
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/setup-review",
-    prefix: "theme-",
-  });
+  const evidence = await evidenceDirectory("artifacts/setup-review", "theme-");
   const service = await startService(
     loadRuntimeConfig({
       DCMCP_DATA_DIR: await fixture("theme-browser"),

@@ -2,7 +2,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, productBuild } from "./browser.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { evidenceDirectory, fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -10,11 +10,7 @@ import { createLog } from "../src/log.ts";
 Deno.test("built product shell performs public setup and theme interaction on insecure LAN HTTP with bundled fonts", async () => {
   await productBuild();
   const root = await fixture("web-shell");
-  await Deno.mkdir("artifacts/m2", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/m2",
-    prefix: "shell-",
-  });
+  const evidence = await evidenceDirectory("artifacts/m2", "shell-");
   const { cfg } = loadRuntimeConfig({
     DCMCP_DATA_DIR: `${root}/service`,
     DCMCP_LISTEN_PORT: "0",

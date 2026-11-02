@@ -2,7 +2,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { Cdp } from "./cdp.ts";
 import { click, key, productBuild, type } from "./browser.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { evidenceDirectory, fixture, lanAddress, poll } from "./support.ts";
 import { startService } from "../src/service.ts";
 import { loadRuntimeConfig } from "../src/auth/state.ts";
 import { createLog } from "../src/log.ts";
@@ -37,10 +37,7 @@ const ready = (page: Cdp, heading: string) =>
 Deno.test("native setup flow guides identity and accepted pairing before keys, preserves custom and removed relay choices through bounded refresh", async () => {
   await productBuild();
   const root = await fixture("setup-review"),
-    evidence = await Deno.makeTempDir({
-      dir: "artifacts",
-      prefix: "setup-review-browser-",
-    });
+    evidence = await evidenceDirectory("artifacts", "setup-review-browser-");
   let upstream = "success",
     fetches = 0,
     configured = false,

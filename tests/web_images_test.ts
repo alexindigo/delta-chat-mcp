@@ -10,17 +10,13 @@ import { FakeCore } from "./unit/fake_core.ts";
 import { Cdp } from "./cdp.ts";
 import { click, productBuild } from "./browser.ts";
 import { decodedImage, imageFixtures } from "./image_fixtures.ts";
-import { fixture, lanAddress, poll } from "./support.ts";
+import { evidenceDirectory, fixture, lanAddress, poll } from "./support.ts";
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 Deno.test("native media consumer decodes four rasters, keeps named failures, bounds retries and anchors above/below/paging/delayed decode", async () => {
   await productBuild();
   const root = await fixture("web-images");
-  await Deno.mkdir("artifacts/images", { recursive: true });
-  const evidence = await Deno.makeTempDir({
-    dir: "artifacts/images",
-    prefix: "consumer-",
-  });
+  const evidence = await evidenceDirectory("artifacts/images", "consumer-");
   const service = await startService(
     loadRuntimeConfig({
       DCMCP_DATA_DIR: `${root}/service`,
