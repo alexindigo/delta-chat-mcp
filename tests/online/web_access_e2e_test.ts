@@ -103,7 +103,7 @@ async function dark(
 ) {
   await poll(() =>
     page.evaluate<boolean>(
-      `document.documentElement.classList.contains('dark') === ${expected}`,
+      `document.documentElement?.classList.contains('dark') === ${expected}`,
     )
   );
   assertEquals(
