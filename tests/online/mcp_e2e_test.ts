@@ -12,7 +12,7 @@ import { AccountService } from "../../src/messaging/account.ts";
 import type { CoreMessage } from "../../src/core/client.ts";
 import type { Message } from "../../src/messaging/message.ts";
 import { ChangeHub } from "../../src/events.ts";
-import { McpSessions } from "../../src/mcp/sessions.ts";
+import { McpTransport } from "../../src/mcp/transport.ts";
 import { deadline, fixture, lanAddress, poll } from "../support.ts";
 
 const pause = (ms: number) =>
@@ -92,10 +92,26 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
   assertEquals(Deno.env.get("CHATMAIL_DOMAIN"), "ci-chatmail.testrun.org");
   const root = await fixture("m2-mcp"), run = crypto.randomUUID();
   const env = { DCMCP_DATA_DIR: `${root}/A`, DCMCP_LISTEN_PORT: "0" };
-  const start = () =>
-    startService(loadRuntimeConfig(env).cfg, {
+  const start = async () => {
+    const service = await startService(loadRuntimeConfig(env).cfg, {
       log: createLog("error", [], () => {}),
     });
+    try {
+      const listenerBaseline = service.app.events.listenerCount;
+      assertEquals(
+        listenerBaseline,
+        1,
+        "known service-owned RoomRouting startup listener",
+      );
+      const transport = service.app.mcp;
+      assert(transport instanceof McpTransport);
+      assertEquals(transport.legacySessionCount, 0);
+      return { ...service, listenerBaseline, transport };
+    } catch (error) {
+      await service.close();
+      throw error;
+    }
+  };
   let a = await start(), b: Peer | undefined, c: Peer | undefined;
   const clients: Client[] = [];
   const connect = async (key: string) => {
@@ -103,9 +119,16 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
       new URL(`http://${lanAddress()}:${a.addr.port}/mcp`),
       { requestInit: { headers: { Authorization: `Bearer ${key}` } } },
     );
-    const client = new Client({ name: "m2-consumer", version: "0" });
+    const client = new Client({ name: "m2-consumer", version: "0" }, {
+      versionNegotiation: { mode: "legacy" },
+    });
     clients.push(client);
     await deadline(client.connect(transport));
+    assert(
+      transport.sessionId,
+      "legacy SDK handshake allocates an actual session",
+    );
+    assertEquals(a.transport.legacySessionCount, 1);
     return { client, transport };
   };
   let cookie = "";
@@ -136,7 +159,6 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
     });
     assertEquals(created.status, 201);
     const key = await created.json();
-    const sessions = a.app.mcp as McpSessions;
     const noKey = await fetch(`http://${lanAddress()}:${a.addr.port}/mcp`, {
       method: "POST",
       body: "{}",
@@ -144,7 +166,7 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
     assertEquals(noKey.status, 401);
     assertEquals(noKey.headers.get("www-authenticate"), "Bearer");
     await noKey.body?.cancel();
-    assertEquals(sessions.sessionCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     await a.app.account.create({
       relay: "ci-chatmail.testrun.org",
       displayName: `M2 A ${run}`,
@@ -178,7 +200,7 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
     await pair(b);
     await pair(c);
     let session = await connect(key.key);
-    assertEquals((await session.client.listTools()).tools.length, 9);
+    assertEquals((await session.client.listTools()).tools.length, 17);
     const status = await tool<{ configured: boolean; address: string }>(
       session.client,
       "status",
@@ -253,12 +275,13 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
       "wait_for_messages",
       { chat_id: room, after_id: first.message_id, timeout_seconds: 60 },
     );
-    await poll(() => a.app.events.listenerCount === 1);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
     await pause(5000);
     const bReplyId = await b.peer.call((rpc) =>
       rpc.miscSendTextMessage(b!.id, br.chatId, replyText)
     );
     const reply = await waiting;
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     assert(
       !reply.timedOut &&
         reply.messages.some((message) =>
@@ -285,6 +308,7 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
     });
     const anchor = reply.messages.at(-1)!.id;
     await session.transport.terminateSession();
+    await poll(() => a.transport.legacySessionCount === 0);
     await session.client.close();
     const cText1 = `M2 disconnected one ${run}`,
       cText2 = `M2 disconnected two ${run}`;
@@ -357,10 +381,10 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
       name: "wait_for_messages",
       arguments: { chat_id: room, after_id: newest, timeout_seconds: 60 },
     }, { signal: abort.signal, timeout: 65000 }).then(() => false, () => true);
-    await poll(() => a.app.events.listenerCount === 1);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
     abort.abort();
     assert(await cancelled);
-    await poll(() => a.app.events.listenerCount === 0);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline);
     const directText = `M2 contact text ${run}`;
     await tool(session.client, "send_message", {
       contact_id: bid.id,
@@ -375,12 +399,13 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
       name: "wait_for_messages",
       arguments: { chat_id: room, after_id: newest, timeout_seconds: 60 },
     }, { timeout: 4000 }).catch(() => null);
-    await poll(() => a.app.events.listenerCount === 1);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
     const deletion = await api(`/api/keys/${key.id}`, "DELETE");
     assertEquals(deletion.status, 204);
     await deletion.body?.cancel();
     await poll(() =>
-      a.app.events.listenerCount === 0 && sessions.sessionCount === 0
+      a.app.events.listenerCount === a.listenerBaseline &&
+      a.transport.legacySessionCount === 0
     );
     const revoked = await fetch(`http://${lanAddress()}:${a.addr.port}/mcp`, {
       headers: {
@@ -391,10 +416,12 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
     assertEquals(revoked.status, 401);
     assertEquals(revoked.headers.get("www-authenticate"), "Bearer");
     await revoked.body?.cancel();
-    assertEquals(sessions.sessionCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     await deadline(revokedWait, 6000);
     await session.client.close();
     await a.close();
+    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     a = await start();
     // New key/session, same core history; local deletion remains local and durable.
     const login = await api("/api/auth/login", "POST", {
@@ -422,9 +449,10 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
         timeout_seconds: 60,
       },
     }, { timeout: 4000 }).catch(() => null);
-    await poll(() => a.app.events.listenerCount === 1);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
     await deadline(a.close(), 15000);
     assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     await deadline(closingWait, 6000);
     proof(
       "mcp_revocation_cancels_live_wait_and_reused_session_401_restart_preserves_delete_shutdown_joins",
@@ -432,6 +460,8 @@ Deno.test("official SDK product MCP proves A/B/C encrypted rooms, receipts, wait
   } finally {
     await Promise.all(clients.map((client) => client.close()));
     await a.close();
+    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     await b?.peer.close();
     await c?.peer.close();
   }
@@ -449,6 +479,12 @@ Deno.test("public product MCP needs no key or browser cookie", async () => {
     ),
     client = new Client({ name: "public", version: "0" });
   try {
+    const listenerBaseline = a.app.events.listenerCount;
+    assertEquals(
+      listenerBaseline,
+      1,
+      "known service-owned RoomRouting startup listener",
+    );
     await client.connect(transport);
     assertEquals(
       (await tool<{ configured: boolean }>(client, "status")).configured,
@@ -458,5 +494,6 @@ Deno.test("public product MCP needs no key or browser cookie", async () => {
   } finally {
     await client.close();
     await a.close();
+    assertEquals(a.app.events.listenerCount, 0);
   }
 });

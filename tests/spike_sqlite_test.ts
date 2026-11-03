@@ -13,7 +13,7 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
     );
     assertEquals(
       first.prepare("SELECT version FROM schema_version").get()?.version,
-      2,
+      3,
     );
     // Persist real service-owned metadata; no fixture message table is needed.
     first.prepare(
@@ -43,7 +43,7 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
     );
     assertEquals(
       reopened.prepare("SELECT version FROM schema_version").get()?.version,
-      2,
+      3,
     );
     assertEquals(
       reopened.prepare("PRAGMA journal_mode").get()?.journal_mode,
@@ -53,9 +53,9 @@ Deno.test("node:sqlite WAL database preserves a row and schema version after reo
       reopened.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
       ).all().map((row) => row.name),
-      ["api_keys", "schema_version"],
+      ["api_keys", "room_routing", "schema_version"],
     );
-    console.log(`disk row=survives close; schema=2; WAL; ${dir}/app.sqlite`);
+    console.log(`disk row=survives close; schema=3; WAL; ${dir}/app.sqlite`);
   } finally {
     reopened.close();
   }

@@ -2,7 +2,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { ServiceBag } from "../../service.ts";
-import { toolResult } from "../result.ts";
+import { agentResult } from "../agent.ts";
 export function createRoom(server: McpServer, services: ServiceBag) {
   server.registerTool(
     "create_room",
@@ -10,13 +10,14 @@ export function createRoom(server: McpServer, services: ServiceBag) {
       description:
         "Create a fresh named room with selected encryption-usable contacts. Send the first text to deliver it to peers. On an incomplete result, explicitly resume the SAME unpromoted chat with resume_chat_id; never blindly retry an uncertain creation.",
       inputSchema: z.object({
+        session_id: z.string().min(1).optional(),
         name: z.string().trim().min(1),
         contact_ids: z.array(z.number().int().positive()).max(100),
         resume_chat_id: z.number().int().positive().max(0xffffffff).optional(),
       }),
     },
-    (input) =>
-      toolResult(async () => ({
+    (input, ctx) =>
+      agentResult(services, ctx, input, async () => ({
         chat_id: (await (input.resume_chat_id === undefined
           ? services.rooms.createRoom(input.name, input.contact_ids)
           : services.rooms.completeRoom(

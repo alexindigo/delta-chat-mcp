@@ -6,12 +6,18 @@ import {
   messageState,
 } from "../core/client.ts";
 import { type InlineImage, inlineImage } from "./attachment-policy.ts";
-export interface Message {
+import type { MessageBody } from "./body.ts";
+export interface Message extends MessageBody {
   id: number;
   chatId: number;
   fromContactId: number;
   fromSelf: boolean;
-  text: string;
+  fromName: string;
+  fromAddress: string;
+  isInfo: boolean;
+  isBot: boolean;
+  isForwarded: boolean;
+  quote?: { text: string; messageId?: number; authorName?: string };
   timestamp: number;
   state: MessageState;
   hasAttachment: boolean;
@@ -20,13 +26,32 @@ export interface Message {
   inlineImage?: InlineImage;
   attachmentDownloadState?: CoreMessage["downloadState"];
 }
-export function toMessage(message: CoreMessage): Message {
+export function toMessage(message: CoreMessage, body: MessageBody): Message {
   return {
     id: message.id,
     chatId: message.chatId,
     fromContactId: message.fromId,
     fromSelf: isSelfContact(message.fromId),
-    text: message.text,
+    ...body,
+    fromName: message.overrideSenderName ?? message.sender.displayName,
+    fromAddress: message.sender.address,
+    isInfo: message.isInfo,
+    isBot: message.isBot,
+    isForwarded: message.isForwarded,
+    ...(message.quote
+      ? {
+        quote: {
+          text: message.quote.text,
+          ...(message.quote.kind === "WithMessage"
+            ? {
+              messageId: message.quote.messageId,
+              authorName: message.quote.overrideSenderName ??
+                message.quote.authorDisplayName,
+            }
+            : {}),
+        },
+      }
+      : {}),
     timestamp: message.timestamp,
     state: messageState(message.state),
     hasAttachment: message.file !== null || message.fileName !== null,

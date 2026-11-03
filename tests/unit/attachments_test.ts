@@ -36,6 +36,7 @@ const message = (patch: Partial<CoreMessage> = {}) => ({
   dimensionsWidth: 24,
   dimensionsHeight: 12,
   showPadlock: true,
+  sender: { displayName: "Peer", address: "peer@example.org" },
   ...patch,
 } as CoreMessage);
 
@@ -82,7 +83,10 @@ Deno.test("one raster policy gates core classifications, MIME, readiness and saf
   ) {
     assertEquals(inlineImage(message({ downloadState })), undefined);
     assertEquals(
-      toMessage(message({ downloadState, file: null, fileName: null }))
+      toMessage(message({ downloadState, file: null, fileName: null }), {
+        text: "Caption",
+        textComplete: false,
+      })
         .attachmentDownloadState,
       downloadState,
     );
@@ -93,7 +97,7 @@ Deno.test("one raster policy gates core classifications, MIME, readiness and saf
       mimeType: "image/png",
     });
   }
-  const mapped = toMessage(message());
+  const mapped = toMessage(message(), { text: "Caption", textComplete: true });
   assertEquals(mapped.inlineImage, {
     mimeType: "image/png",
     width: 24,

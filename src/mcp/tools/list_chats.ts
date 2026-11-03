@@ -2,11 +2,14 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { ServiceBag } from "../../service.ts";
-import { toolResult } from "../result.ts";
+import { agentResult } from "../agent.ts";
 export function listChats(server: McpServer, services: ServiceBag) {
   server.registerTool("list_chats", {
     description:
       "Every chat and room, including contact requests, members and last message time.",
-    inputSchema: z.object({}),
-  }, () => toolResult(async () => ({ chats: await services.chats.list() })));
+    inputSchema: z.object({ session_id: z.string().min(1).optional() }),
+  }, (input, ctx) =>
+    agentResult(services, ctx, input, async () => ({
+      chats: await services.chats.list(),
+    })));
 }

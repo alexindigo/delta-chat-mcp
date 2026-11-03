@@ -4,7 +4,7 @@ import { assertEquals } from "@std/assert";
 import { openStateDb } from "../../src/state/db.ts";
 import { fixture } from "../support.ts";
 
-Deno.test("M0 schema upgrades transactionally with access tables only", async () => {
+Deno.test("M0 schema upgrades transactionally with access and metadata-only room routing", async () => {
   const dir = await fixture("schema");
   const old = new DatabaseSync(`${dir}/app.sqlite`);
   old.exec(
@@ -16,13 +16,13 @@ Deno.test("M0 schema upgrades transactionally with access tables only", async ()
     assertEquals(
       db.prepare("SELECT version FROM schema_version WHERE id=1").get()
         ?.version,
-      2,
+      3,
     );
     assertEquals(
       db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
       ).all().map((row) => row.name),
-      ["api_keys", "schema_version"],
+      ["api_keys", "room_routing", "schema_version"],
     );
     assertEquals(
       db.prepare("PRAGMA table_info(api_keys)").all().map((row) => row.name),

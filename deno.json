@@ -9,11 +9,13 @@
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint",
-    "check": "deno check main.ts src/ tests/ web/src/ web/vite.config.ts",
+    "check": "deno check main.ts src/ tests/ web/src/ web/vite.config.ts integrations/",
     "test": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys --ignore=tests/online tests/",
+    "test:opencode": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys integrations/opencode/tests/",
     "test:online": "deno test --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys tests/online/",
     "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run --allow-sys main.ts",
-    "build:web": "deno run -A npm:vite@8.3.5 build --config web/vite.config.ts"
+    "build:web": "deno run -A npm:vite@8.3.5 build --config web/vite.config.ts",
+    "build:opencode": "deno bundle --format=esm --platform=deno --external='node:*' --external='bun:*' --output=integrations/opencode/dist/delta-chat-mcp-opencode.js integrations/opencode/mod.ts"
   },
   "imports": {
     "@pathfinder/pathfinder": "jsr:@pathfinder/pathfinder@0.2.4",
@@ -40,6 +42,7 @@
     "exclude": [
       "node_modules",
       "web/dist",
+      "integrations/opencode/dist",
       ".test-state",
       ".tmp",
       "artifacts",
@@ -47,6 +50,13 @@
     ]
   },
   "lint": {
-    "exclude": ["node_modules", "web/dist", ".test-state", ".tmp", "artifacts"]
+    "exclude": [
+      "node_modules",
+      "web/dist",
+      "integrations/opencode/dist",
+      ".test-state",
+      ".tmp",
+      "artifacts"
+    ]
   }
 }

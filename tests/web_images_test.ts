@@ -61,6 +61,7 @@ Deno.test("native media consumer decodes four rasters, keeps named failures, bou
       viewType: "Text",
       downloadState: "Done",
       showPadlock: true,
+      sender: { displayName: "Peer", address: "peer@example.org" },
     } as CoreMessage));
     const setImage = (id: number, format: string, dimensions = true) => {
       Object.assign(messages.find((m) => m.id === id)!, {
@@ -185,7 +186,12 @@ Deno.test("native media consumer decodes four rasters, keeps named failures, bou
           !range.beforeId || m.id < range.beforeId
         ).slice(
           -(range.limit ?? 30),
-        ).map(toMessage),
+        ).map((m) =>
+          toMessage(m, {
+            text: m.text,
+            textComplete: m.downloadState === "Done",
+          })
+        ),
       );
     service.app.chats.markPresented = () => Promise.resolve();
     await browser.send("Emulation.setDeviceMetricsOverride", {

@@ -1,6 +1,7 @@
 node_modules/
 data/
 web/dist/
+integrations/opencode/dist/
 .test-state/
 .tmp/
 artifacts/

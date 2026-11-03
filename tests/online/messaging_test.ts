@@ -12,7 +12,15 @@ import { CoreProcess } from "../../src/core/process.ts";
 import type { CoreClient, CoreRpc } from "../../src/core/client.ts";
 import { AccountService } from "../../src/messaging/account.ts";
 import { ChangeHub } from "../../src/events.ts";
+import { McpTransport } from "../../src/mcp/transport.ts";
 import { publicKeys } from "../account_keys.ts";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+} from "@modelcontextprotocol/client";
+import { startDeltaChat } from "@deltachat/stdio-rpc-server";
+import { once } from "node:events";
+import type { Message } from "../../src/messaging/message.ts";
 
 type Peer = Awaited<ReturnType<typeof startTestPeer>>;
 const pause = (ms: number) =>
@@ -205,10 +213,25 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
   const logs: string[] = [];
   const startA = async () => {
     const { cfg, secretPinned } = loadRuntimeConfig(env);
-    return await startService(cfg, {
+    const service = await startService(cfg, {
       secretPinned,
       log: createLog("debug", [], (line) => logs.push(line)),
     });
+    try {
+      const listenerBaseline = service.app.events.listenerCount;
+      assertEquals(
+        listenerBaseline,
+        1,
+        "known service-owned RoomRouting startup listener",
+      );
+      const transport = service.app.mcp;
+      assert(transport instanceof McpTransport);
+      assertEquals(transport.legacySessionCount, 0);
+      return { ...service, listenerBaseline, transport };
+    } catch (error) {
+      await service.close();
+      throw error;
+    }
   };
   const allocatedId = await interruptedIdentity(
     `${root}/A/accounts`,
@@ -320,7 +343,7 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
       rpc.miscSendTextMessage(b!.id, bp.chat, idleText)
     );
     await pause(1000); // No browser/MCP client or message subscription is attached.
-    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     const idle = await incoming(sent.chatId, idleText);
     await a.app.chats.markSeen([idle.id]);
     await poll(
@@ -347,6 +370,8 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
     evidence("local_delete_preserves_peer_copy");
     const oldPid = a.corePid()!;
     await deadline(a.close(), 15000);
+    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.transport.legacySessionCount, 0);
     await assertRejects(
       () => Promise.resolve().then(() => Deno.kill(oldPid, 0)),
       Deno.errors.NotFound,
@@ -378,12 +403,14 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         assert(Date.now() - start < 15000);
       }),
       (async () => {
+        await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
         await pause(5000);
         await b!.peer.call((rpc) =>
           rpc.miscSendTextMessage(b!.id, bp.chat, `M1 delayed reply ${run}`)
         );
       })(),
     ]);
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     const replyMs = Date.now() - start;
     anchor =
       (await a.app.chats.messages(sent.chatId, { limit: 1000 })).at(-1)!.id;
@@ -397,15 +424,19 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         .some((message) => message.text === present.text),
     );
     const immediateMs = Date.now() - immediateStart;
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     assert(immediateMs < 1000);
     anchor =
       (await a.app.chats.messages(sent.chatId, { limit: 1000 })).at(-1)!.id;
     const timeoutStart = Date.now();
-    assertEquals(await a.app.chats.waitForMessage(sent.chatId, anchor, 2000), {
+    const timedWait = a.app.chats.waitForMessage(sent.chatId, anchor, 2000);
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
+    assertEquals(await timedWait, {
       timedOut: true,
       messages: [],
     });
     const timeoutMs = Date.now() - timeoutStart;
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     assert(timeoutMs >= 1900 && timeoutMs < 3000);
     const controller = new AbortController();
     const aborted = assertRejects(
@@ -418,15 +449,18 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         ),
       DOMException,
     );
+    await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
     await pause(100);
     controller.abort();
     await aborted;
-    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     evidence("real_wait_outcomes", {
       replyMs,
       immediateMs,
       timeoutMs,
-      listenersAfterAbort: 0,
+      listenersAfterAbort: a.app.events.listenerCount - a.listenerBaseline,
+      totalListenersAfterAbort: a.app.events.listenerCount,
+      serviceOwnedListenerBaseline: a.listenerBaseline,
     });
     const crashPid = a.corePid()!;
     await Promise.all([
@@ -438,6 +472,7 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         );
       }),
       (async () => {
+        await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
         Deno.kill(crashPid, "SIGKILL");
         await poll(() => a.app.health().core === "restarting");
         const health = await fetch(
@@ -452,7 +487,7 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         assert(a.corePid() !== crashPid);
       })(),
     ]);
-    assertEquals(a.app.events.listenerCount, 0);
+    assertEquals(a.app.events.listenerCount, a.listenerBaseline);
     evidence("crash_recovery_and_pending_wait_recheck");
     const room = await a.app.rooms.createRoom(`M1 room ${run}`, [
       bp.contactId,
@@ -474,7 +509,7 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
         db.prepare(
           "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
         ).all().map((row) => row.name),
-        ["api_keys", "schema_version"],
+        ["api_keys", "room_routing", "schema_version"],
       );
     } finally {
       db.close();
@@ -483,6 +518,187 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
       firstReceivedBy: 2,
       replyReceivedByA: true,
     });
+    // J1 exercises the real MCP wire and browser history JSON with the SAME
+    // throwaway peers. Only the test-owned B process is replaced with a stock
+    // raw peer here, to exercise sendMsg quotes/forwardMessages without widening
+    // the product facade or shared test-peer helper.
+    await b.peer.close();
+    const stock = startDeltaChat(`${root}/B`, {
+      disableEnvPath: true,
+      muteStdErr: true,
+    });
+    const stockClosed = Promise.all([
+      once(stock.transport.input, "close"),
+      once(stock.transport.output, "close"),
+    ]);
+    const client = new Client({ name: "j1-full-body-consumer", version: "0" });
+    try {
+      await stock.rpc.getSystemInfo();
+      await stock.rpc.startIo(b.id);
+      const origin = `http://${lanAddress()}:${a.addr.port}`;
+      await deadline(
+        client.connect(
+          new StreamableHTTPClientTransport(new URL(`${origin}/mcp`)),
+        ),
+      );
+      const tool = async <T>(name: string, args: Record<string, unknown>) => {
+        const result = await client.callTool({ name, arguments: args }, {
+          timeout: 70000,
+        });
+        assert(!result.isError, `J1 tool ${name} failed`);
+        assert(result.structuredContent !== undefined);
+        assertEquals(result.content, [{
+          type: "text",
+          text: JSON.stringify(result.structuredContent),
+        }]);
+        return result.structuredContent as T;
+      };
+      const longText = (direction: string) =>
+        `J1 ${direction} ${run}\n` +
+        (` leading & < > " ' Unicode π 日本 😀 literal [...]\n` +
+          `> quoted-looking line & < >\n\n` +
+          `https://example.org/path?x=1&y=2 foo+tag@example.org\n` +
+          "a".repeat(190) + "\n").repeat(24) +
+        `J1-END-${direction}-${run}`;
+      const fullIncoming = longText("incoming");
+      assert(fullIncoming.length >= 6200);
+      const lastId = (await a.app.chats.messages(room.chatId)).at(-1)!.id;
+      const waiting = tool<{ messages: Message[]; timedOut: boolean }>(
+        "wait_for_messages",
+        {
+          chat_id: room.chatId,
+          after_id: lastId,
+          timeout_seconds: 60,
+        },
+      );
+      await poll(() => a.app.events.listenerCount === a.listenerBaseline + 1);
+      const peerSent = await stock.rpc.miscSendTextMessage(
+        b.id,
+        bRoom.chatId,
+        fullIncoming,
+      );
+      const waitResult = await waiting;
+      assertEquals(waitResult.timedOut, false);
+      const waited = waitResult.messages.find((m) =>
+        !m.fromSelf && m.text === fullIncoming
+      );
+      assert(waited, "Complete incoming body must reach MCP wait consumer");
+      const exact = (path: string, value: Message, expected: string) => {
+        assertEquals(value.text, expected);
+        assertEquals(value.textComplete, true);
+        assertEquals(value.html, undefined);
+        assertEquals(
+          value.text.endsWith(
+            `J1-END-${
+              path === "outgoing-read" ? "outgoing" : "incoming"
+            }-${run}`,
+          ),
+          true,
+        );
+        evidence(`j1_${path}_exact`, {
+          exactEquality: value.text === expected,
+          expectedLength: expected.length,
+          actualLength: value.text.length,
+          textComplete: value.textComplete,
+          marker: expected.slice(expected.lastIndexOf("J1-END-")),
+          messageId: value.id,
+        });
+      };
+      exact("wait", waited, fullIncoming);
+      const read = await tool<{ messages: Message[] }>("read_messages", {
+        chat_id: room.chatId,
+        after_id: lastId,
+        limit: 100,
+      });
+      exact(
+        "read",
+        read.messages.find((m) => m.id === waited.id)!,
+        fullIncoming,
+      );
+      const browserResponse = await fetch(
+        `${origin}/api/chats/${room.chatId}/messages`,
+        { signal: AbortSignal.timeout(10000) },
+      );
+      assertEquals(browserResponse.status, 200);
+      const browser = await browserResponse.json() as { messages: Message[] };
+      exact(
+        "browser-json",
+        browser.messages.find((m) => m.id === waited.id)!,
+        fullIncoming,
+      );
+      const peerDisplay = await stock.rpc.getMessage(b.id, peerSent);
+      assert(peerDisplay.hasHtml && peerDisplay.text !== fullIncoming);
+      evidence("j1_display_is_not_complete_body", {
+        displayLength: peerDisplay.text.length,
+        fullLength: fullIncoming.length,
+        hasHtml: peerDisplay.hasHtml,
+      });
+      const fullOutgoing = longText("outgoing");
+      assert(fullOutgoing.length >= 6200);
+      const outgoing = await tool<{ message_id: number }>("send_message", {
+        chat_id: room.chatId,
+        text: fullOutgoing,
+      });
+      const readback = await tool<{ messages: Message[] }>("read_messages", {
+        chat_id: room.chatId,
+        after_id: waited.id,
+        limit: 100,
+      });
+      exact(
+        "outgoing-read",
+        readback.messages.find((m) => m.id === outgoing.message_id)!,
+        fullOutgoing,
+      );
+      const quoteText = `J1 real quoted reply ${run}`;
+      await stock.rpc.sendMsg(b.id, bRoom.chatId, {
+        text: quoteText,
+        html: null,
+        viewtype: "Text",
+        file: null,
+        filename: null,
+        location: null,
+        overrideSenderName: "J1 peer alias",
+        quotedMessageId: bRoom.id,
+        quotedText: null,
+      });
+      const quoted = await incoming(room.chatId, quoteText);
+      assertEquals(quoted.quote, {
+        text: `M1 room first ${run}`,
+        messageId: (history.find((m) => m.text === `M1 room first ${run}`))!.id,
+        authorName: history.find((m) => m.text === `M1 room first ${run}`)!
+          .fromName,
+      });
+      assertEquals(quoted.fromName, "J1 peer alias");
+      const peerSender = await stock.rpc.getContact(b.id, 1);
+      assertEquals(quoted.fromAddress, peerSender.address);
+      assertEquals([quoted.isBot, quoted.isInfo, quoted.isForwarded], [
+        false,
+        false,
+        false,
+      ]);
+      evidence("j1_real_quote_mapping", {
+        exactEquality: true,
+        quote: quoted.quote,
+        fromName: quoted.fromName,
+        canonicalAddressEqual: quoted.fromAddress === peerSender.address,
+      });
+      await stock.rpc.forwardMessages(b.id, [bReceived.id], bRoom.chatId);
+      const forwarded = await incoming(
+        room.chatId,
+        `M1 encrypted A to B ${run}`,
+      );
+      assertEquals(forwarded.isForwarded, true);
+      assertEquals(forwarded.fromAddress, peerSender.address);
+      evidence("j1_real_forward_mapping", {
+        isForwarded: forwarded.isForwarded,
+        canonicalAddressEqual: true,
+        messageId: forwarded.id,
+      });
+    } finally {
+      await client.close();
+      stock.close();
+      await deadline(stockClosed, 10000);
+    }
     assert(!logs.some((line) => line.includes(run))); // Message bodies never enter structured service logs.
     evidence("all_messaging_outcomes_observed");
   } catch (error) {
@@ -493,6 +709,12 @@ Deno.test("real A/B/C relay peers prove encrypted messaging, idle persistence, r
       b?.peer.close(),
       c?.peer.close(),
     ]);
+    try {
+      assertEquals(a.app.events.listenerCount, 0);
+      assertEquals(a.transport.legacySessionCount, 0);
+    } catch (error) {
+      failures.push(error);
+    }
     if (results.some((result) => result.status === "rejected")) {
       failures.push(new Error("Owned online fixture cleanup failed"));
     }

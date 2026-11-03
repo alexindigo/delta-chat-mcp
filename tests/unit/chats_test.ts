@@ -24,6 +24,12 @@ function raw(id: number, fromId = 42): CoreMessage {
     file: null,
     fileName: null,
     showPadlock: true,
+    downloadState: "Done",
+    hasHtml: false,
+    sender: { displayName: "Peer", address: "peer@example.org" },
+    isInfo: false,
+    isBot: false,
+    isForwarded: false,
   } as CoreMessage;
 }
 function setup(initial = [900, 100, 700]) {
@@ -268,4 +274,66 @@ Deno.test("service-owned wait lifetime aborts outstanding subscriptions on shutd
   app.chats.close();
   await assertRejects(() => waiting, DOMException, "aborted");
   assertEquals(app.hub.listenerCount, 0);
+});
+
+Deno.test("history resolves complete bodies at the shared read boundary", async () => {
+  const app = setup([900]);
+  const full = "long & Unicode π [...]\n".repeat(300) + "unique-end";
+  app.messages.set(900, { ...raw(900), text: "display [...]", hasHtml: true });
+  Object.assign(app.core.handlers, {
+    getMessageHtml: () =>
+      Promise.resolve(`<!DOCTYPE html>
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="color-scheme" content="light dark" />
+</head><body dir="auto" style="unicode-bidi: plaintext">
+${full.replaceAll("&", "&amp;").replaceAll("\n", "<br/>\n")}<br/>
+</body></html>
+`),
+  });
+  const messages = await app.chats.readMessages(99);
+  assertEquals(messages[0].text, full);
+  assertEquals(messages[0].textComplete, true);
+  assertEquals(app.seen, [900]);
+});
+
+Deno.test("wait resolves HTML only for its returned100-row page, never1000 presence candidates", async () => {
+  const app = setup(Array.from({ length: 1005 }, (_, i) => i + 100));
+  for (const [id, m] of app.messages) {
+    app.messages.set(id, { ...m, hasHtml: true });
+  }
+  app.core.handlers.getMessageHtml = (_account, id) =>
+    Promise.resolve(`<p>complete HTML ${id}</p>`);
+  const result = await app.chats.waitAndRead(
+    99,
+    100,
+    1000,
+    new AbortController().signal,
+  );
+  assertEquals(
+    result.messages.map((m) => m.id),
+    Array.from({ length: 100 }, (_, i) => i + 101),
+  );
+  assertEquals(
+    app.core.calls.filter((c) => c.method === "getMessageHtml").map((c) =>
+      c.args
+    ),
+    result.messages.map((m) => [7, m.id]),
+  );
+  assertEquals(
+    (app.core.calls.find((c) => c.method === "getMessages")!
+      .args[1] as number[])
+      .length,
+    1000,
+  );
+  assertEquals(app.seen, result.messages.map((m) => m.id));
+  assertEquals(
+    result.messages.every((m) =>
+      m.textComplete === false && m.html === `<p>complete HTML ${m.id}</p>`
+    ),
+    true,
+  );
+  const next = await app.chats.waitForMessage(99, 200, 1000);
+  assertEquals(next.messages.length, 100);
+  assertEquals(next.messages[0].id, 201);
 });

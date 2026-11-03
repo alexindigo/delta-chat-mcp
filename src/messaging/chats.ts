@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: LGPL-3.0-only
-import { type CoreClient, CoreUnavailable } from "../core/client.ts";
+import {
+  type CoreClient,
+  CoreUnavailable,
+  isSelfContact,
+} from "../core/client.ts";
 import type { ChangeHub } from "../events.ts";
 import type { AccountService } from "./account.ts";
 import { type Message, toMessage } from "./message.ts";
 import { requireId, requireIds } from "./validation.ts";
 import { loadMessages } from "./load.ts";
+import { resolveMessageBody } from "./body.ts";
 
 export class UnknownMessageAnchor extends Error {
   constructor() {
@@ -83,6 +88,18 @@ export class ChatsService {
     });
   }
   async messages(chatId: number, range: MessageRange = {}): Promise<Message[]> {
+    return await this.#messages(chatId, range);
+  }
+  /** Routing starts at the beginning for an empty-room anchor, not the tail. */
+  async routingMessages(chatId: number, afterId?: number): Promise<Message[]> {
+    return await this.#messages(chatId, { afterId, limit: 100 }, 100, true);
+  }
+  async #messages(
+    chatId: number,
+    range: MessageRange,
+    returnedLimit = range.limit ?? 50,
+    fromStart = false,
+  ): Promise<Message[]> {
     requireId(chatId);
     if (range.afterId !== undefined) requireId(range.afterId);
     if (range.beforeId !== undefined) requireId(range.beforeId);
@@ -104,17 +121,22 @@ export class ChatsService {
         throw new UnknownMessageAnchor();
       }
       const selected = ids.slice(after + 1, before);
-      const page = range.afterId === undefined
+      const page = range.afterId === undefined && !fromStart
         ? selected.slice(-limit)
         : selected.slice(0, limit);
       if (!page.length) return [];
       const loaded = await loadMessages(rpc, id, page);
-      return page.flatMap((messageId) => {
+      const result: Message[] = [];
+      for (const messageId of page) {
+        if (result.length === returnedLimit) break;
         const message = loaded.get(messageId);
         // A concurrent deletion is absence, never a fabricated empty message.
-        if (!message) return [];
-        return [toMessage(message)];
-      });
+        if (!message) continue;
+        result.push(
+          toMessage(message, await resolveMessageBody(rpc, id, message)),
+        );
+      }
+      return result;
     });
   }
   async readMessages(
@@ -146,7 +168,7 @@ export class ChatsService {
         throw new Error("Messages must belong to the displayed chat");
       }
       const incoming = [...loaded.values()].filter((message) =>
-        !toMessage(message).fromSelf
+        !isSelfContact(message.fromId)
       ).map((message) => message.id);
       if (incoming.length) await rpc.markseenMsgs(accountId, incoming);
     });
@@ -164,7 +186,7 @@ export class ChatsService {
       signal,
     );
     signal.throwIfAborted();
-    const messages = result.messages.slice(0, 100);
+    const messages = result.messages;
     await this.markSeen(
       messages.filter((message) => !message.fromSelf).map((message) =>
         message.id
@@ -209,10 +231,10 @@ export class ChatsService {
           while (dirty && !done) {
             dirty = false;
             try {
-              const messages = await this.messages(chatId, {
+              const messages = await this.#messages(chatId, {
                 afterId,
                 limit: 1000,
-              });
+              }, 100);
               if (messages.length) finish({ timedOut: false, messages });
             } catch (error) {
               if (!(error instanceof CoreUnavailable)) finish(undefined, error);

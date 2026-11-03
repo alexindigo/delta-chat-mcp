@@ -51,6 +51,14 @@ export interface Message {
   fromContactId: number;
   fromSelf: boolean;
   text: string;
+  textComplete: boolean;
+  html?: string;
+  fromName: string;
+  fromAddress: string;
+  isInfo: boolean;
+  isBot: boolean;
+  isForwarded: boolean;
+  quote?: { text: string; messageId?: number; authorName?: string };
   timestamp: number;
   state: string;
   hasAttachment: boolean;

@@ -16,15 +16,18 @@ import { openStateDb } from "./state/db.ts";
 import { serveHttp } from "./http/lifetime.ts";
 import { AuthState } from "./auth/state.ts";
 import { ApiKeys } from "./auth/api-keys.ts";
-import { McpSessions } from "./mcp/sessions.ts";
-import { createMcpServer } from "./mcp/server.ts";
+import { McpTransport } from "./mcp/transport.ts";
+import { RoomRouting } from "./messaging/room-routing.ts";
+import { RoomRoutingStore } from "./messaging/room-routing-store.ts";
 import { EventStreams } from "./http/event-streams.ts";
 import { PublicRelays } from "./messaging/relays.ts";
 import { AttachmentsService } from "./messaging/attachments.ts";
 
 export interface ServiceBag {
   streams?: EventStreams;
-  mcp?: Pick<McpSessions, "handleRequest">;
+  mcp?: Pick<McpTransport, "handleRequest">;
+  routing?: RoomRouting;
+  mcpOwner?: string;
   auth: AuthState;
   apiKeys: ApiKeys;
   account: AccountService;
@@ -65,7 +68,8 @@ export async function startService(
   let core: CoreProcess | undefined;
   let chats: ChatsService | undefined;
   let db: ReturnType<typeof openStateDb> | undefined;
-  let mcp: McpSessions | undefined;
+  let mcp: McpTransport | undefined;
+  let routing: RoomRouting | undefined;
   let streams: EventStreams | undefined;
   const relays = new PublicRelays(options.relayFetch);
   const http = serveHttp(cfg.listen, (request) => {
@@ -90,6 +94,7 @@ export async function startService(
         streams?.close();
         relays.close();
         const transports = await Promise.allSettled([mcp?.close()]);
+        await routing?.close();
         chats?.close();
         const results = await Promise.allSettled([
           http.close(),
@@ -181,7 +186,15 @@ export async function startService(
         configured: account.configured,
       }),
     };
-    mcp = new McpSessions(apiKeys, (signal) => createMcpServer(app, signal));
+    routing = new RoomRouting(new RoomRoutingStore(db), {
+      chats,
+      send: app.send,
+      events,
+      authorized: (owner) =>
+        owner === "public" ? auth.mode === "public" : apiKeys.has(owner),
+    });
+    app.routing = routing;
+    mcp = new McpTransport(app);
     app.mcp = mcp;
     handler = await pathfinder({
       roots: [new URL("./http/routes/", import.meta.url)],

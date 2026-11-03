@@ -24,8 +24,8 @@ export class McpSessions {
   #timer: ReturnType<typeof setInterval>;
   constructor(
     private readonly keys: ApiKeys,
-    private readonly build: (signal: AbortSignal) => McpServer = () =>
-      createMcpServer(),
+    private readonly build: (signal: AbortSignal, owner?: string) => McpServer =
+      () => createMcpServer(),
     private readonly idleMs = 30 * 60_000,
   ) {
     this.#off = keys.subscribeRevoked((id) => {
@@ -77,7 +77,7 @@ export class McpSessions {
       return Response.json({ error: "Session required" }, { status: 400 });
     }
     const lifetime = new AbortController();
-    const server = this.build(lifetime.signal);
+    const server = this.build(lifetime.signal, owner);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (id) => {

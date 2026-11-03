@@ -2,14 +2,14 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { ServiceBag } from "../../service.ts";
-import { toolResult } from "../result.ts";
+import { agentResult } from "../agent.ts";
 export function listContacts(server: McpServer, services: ServiceBag) {
   server.registerTool("list_contacts", {
     description:
       "Contacts with current key-contact and encryption-capable state.",
-    inputSchema: z.object({}),
-  }, () =>
-    toolResult(async () => ({
+    inputSchema: z.object({ session_id: z.string().min(1).optional() }),
+  }, (input, ctx) =>
+    agentResult(services, ctx, input, async () => ({
       contacts: (await services.contacts.list()).map((contact) => ({
         id: contact.id,
         name: contact.displayName,

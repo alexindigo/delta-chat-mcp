@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 import { RoomSetupError } from "../messaging/room-outcome.ts";
 export async function toolResult(
-  action: () => Promise<Record<string, unknown>>,
+  action: () => Record<string, unknown> | Promise<Record<string, unknown>>,
 ) {
   try {
     const structuredContent = await action();

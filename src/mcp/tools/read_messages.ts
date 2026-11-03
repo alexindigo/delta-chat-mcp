@@ -2,7 +2,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { ServiceBag } from "../../service.ts";
-import { toolResult } from "../result.ts";
+import { agentResult } from "../agent.ts";
 export function readMessages(server: McpServer, services: ServiceBag) {
   server.registerTool(
     "read_messages",
@@ -10,6 +10,7 @@ export function readMessages(server: McpServer, services: ServiceBag) {
       description:
         "Read core history oldest first. Sends receipts only for returned incoming messages; never deletes. Choose after_id OR before_id.",
       inputSchema: z.object({
+        session_id: z.string().min(1).optional(),
         chat_id: z.number().int().positive(),
         after_id: z.number().int().positive().optional(),
         before_id: z.number().int().positive().optional(),
@@ -20,8 +21,8 @@ export function readMessages(server: McpServer, services: ServiceBag) {
         "Choose after_id or before_id",
       ),
     },
-    (input) =>
-      toolResult(async () => ({
+    (input, ctx) =>
+      agentResult(services, ctx, input, async () => ({
         messages: await services.chats.readMessages(input.chat_id, {
           afterId: input.after_id,
           beforeId: input.before_id,
