@@ -465,11 +465,11 @@ terminal work are retained. Legacy rows with unknown lifecycle times are
 retained conservatively. Core message history is never pruned by this metadata
 policy.
 
-Native qualification targets remain **v1.18.35 and v1.19.3**, using the supplied
-v1 client. V1 plugin tools are direct: its experimental Code Mode wraps native
-MCP tools, not plugin tools. No v2 completion adapter is shipped here; v2's
-default Code Mode direction and durable transcript/completion evidence remain
-unresolved.
+This v1 plugin targets **v1.18.35 and v1.19.3**, using the supplied v1 client.
+V1 plugin tools are direct: its experimental Code Mode wraps native MCP tools,
+not plugin tools. The separate
+[OpenCode v2 and Claude Code integrations](docs/conversations.md) use automatic
+incoming delivery and explicit MCP sends for replies.
 
 A loaded v1 project plugin can receive without an open UI. After a full
 `opencode serve` restart, project plugins are lazy-loaded; this plugin alone
@@ -489,17 +489,28 @@ facts, latest-recipient behavior and plugin-owned pause/reload. Their actual
 native admission, full-body, permission, stable-ID, supersession, compaction and
 stock-peer mirror assertions are checked by `deno task test:opencode` separately
 on each native pin. Legacy generic MCP/authentication/Code Mode and the earlier
-full-body regressions are retained. Future builds/tests run only after explicit
-authorization inside dedicated LXC **804** (`delta-chat-mcp-standard-tests`) on
-**agora**, guest tree
+full-body regressions are retained. Historical qualification used LXC **804**
+(`delta-chat-mcp-standard-tests`) on **agora**, guest tree
 `/home/dev/delta-chat-mcp-automatic-room-wake/tree-standard-mcp`, with
 disk-backed TMPDIR/DENO_DIR under
-`/home/dev/delta-chat-mcp-automatic-room-wake`. Run `deno task fmt:check`,
+`/home/dev/delta-chat-mcp-automatic-room-wake`. That instance has been retired;
+its ID is not authorization to use a replacement. Future workloads require an
+explicitly authorized execution target. The new integration guide names this
+task's separate target. Qualification includes `deno task fmt:check`,
 `deno task lint`, `deno task check`, `deno task test` and
 `deno task build:opencode` before the separate online/native gates.
 Qualification records identify exact source and bundle hashes; earlier results
 do not qualify later edits. The helper/bootstrap and v2 lifecycle gaps above
 remain open.
+
+## Explicit-reply OpenCode v2 and Claude Code integrations
+
+The [conversation integration guide](docs/conversations.md) describes the shared
+coordinator, v2 Code Mode package and Claude Channels plugin. Incoming
+subscribed room messages reach the native agent automatically; the agent calls
+the MCP send tool to reply. Delta Chat core provides earlier chat history. These
+entries use metadata-only progress and do not automatically forward terminal
+answers.
 
 ## License
 

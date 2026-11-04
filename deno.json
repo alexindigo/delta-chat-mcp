@@ -20,6 +20,7 @@
     "test:conversations": "deno test --allow-all integrations/conversations/tests/ integrations/claude-code/tests/native_test.ts",
     "test:opencode-v2": "deno test --allow-all integrations/opencode-v2/tests/",
     "test:claude-code": "deno test --allow-all integrations/claude-code/tests/ordinary_native_test.ts",
+    "test:conversation-handoff": "deno run --config=deno.json --allow-all integrations/conversations/tests/handoff.ts",
     "build:conversations": "deno bundle --format=esm --platform=deno --external='node:*' --external='bun:*' --output=integrations/opencode-v2/server.js integrations/opencode-v2/mod.ts && deno bundle --format=esm --platform=deno --external='node:*' --external='bun:*' --output=integrations/claude-code/worker.js integrations/claude-code/worker.ts && deno bundle --format=esm --platform=deno --external='node:*' --external='bun:*' --output=integrations/claude-code/hook.js integrations/claude-code/hook.ts"
   },
   "imports": {
