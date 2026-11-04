@@ -373,6 +373,17 @@ export class ModernRelay {
       await this.call("status", {}, signal),
     ).address;
   }
+  /** Read-only advertised schemas, shared by native channel tool adapters. */
+  catalog(signal?: AbortSignal) {
+    return this.#own(async () => {
+      const c = await this.#connect();
+      await this.#expected(c, undefined, signal);
+      return (await c.client.listTools({}, {
+        signal: this.#signal(signal),
+        cacheMode: "bypass",
+      })).tools;
+    });
+  }
   async read(
     chat_id: number,
     after_id?: number,

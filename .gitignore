@@ -2,6 +2,7 @@ node_modules/
 data/
 web/dist/
 integrations/opencode/dist/
+integrations/opencode-v2/server.js
 .test-state/
 .tmp/
 artifacts/

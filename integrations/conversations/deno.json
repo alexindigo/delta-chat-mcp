@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "check:conversations": "deno task --config ../../deno.json check:conversations",
+    "test:conversations": "deno task --config ../../deno.json test:conversations",
+    "build:conversations": "deno task --config ../../deno.json build:conversations"
+  }
+}
