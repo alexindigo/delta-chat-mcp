@@ -1,0 +1,106 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-all",
+              "${CLAUDE_PLUGIN_ROOT}/hook.js",
+              "${CLAUDE_PLUGIN_DATA}/config.json"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -3,6 +3,8 @@ data/
 web/dist/
 integrations/opencode/dist/
 integrations/opencode-v2/server.js
+integrations/claude-code/worker.js
+integrations/claude-code/hook.js
 .test-state/
 .tmp/
 artifacts/

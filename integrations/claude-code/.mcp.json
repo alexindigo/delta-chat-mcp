@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "relay": {
+      "command": "deno",
+      "args": [
+        "run",
+        "--allow-all",
+        "${CLAUDE_PLUGIN_ROOT}/worker.js",
+        "${CLAUDE_PLUGIN_DATA}/config.json"
+      ]
+    }
+  }
+}
