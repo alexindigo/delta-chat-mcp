@@ -1,0 +1,91 @@
+name: Release
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions:
+  contents: read
+concurrency:
+  group: stable-publication
+  cancel-in-progress: false
+jobs:
+  release-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      TMPDIR: ${{ github.workspace }}/.test-state/release/tmp
+      DENO_DIR: ${{ github.workspace }}/.test-state/release/deno
+    steps:
+      - name: Verify VM and prepare disk scratch
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          timeout 10 hostname
+          mkdir -p "$TMPDIR" "$DENO_DIR"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: timeout 180 sh scripts/release/bootstrap.sh
+      - name: Validate merged source, build once and qualify
+        run: timeout 3300 deno run -A scripts/release/ci.ts --output "$GITHUB_WORKSPACE/.test-state/release/output"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qualified-release
+          path: .test-state/release/output/delivery/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qualification-evidence
+          retention-days: 7
+          path: |
+            .test-state/release/*.log
+            .test-state/release/output/*.log
+            .test-state/release/output/*/result.json
+            .test-state/release/output/*/failure.json
+            .test-state/release/output/*/run-*/service.log
+  publish:
+    needs: release-smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+    env:
+      TMPDIR: ${{ github.workspace }}/.test-state/release/tmp
+      DENO_DIR: ${{ github.workspace }}/.test-state/release/deno
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify VM and prepare disk scratch
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          timeout 10 hostname
+          mkdir -p "$TMPDIR" "$DENO_DIR"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: timeout 180 sh scripts/release/bootstrap.sh
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: qualified-release
+          path: .test-state/release/delivery
+      - name: Authenticate publishing only
+        run: printf '%s' "$GH_TOKEN" | timeout 30 docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Publish tested image and complete release; verify anonymously
+        run: timeout 1500 deno run -A scripts/release/publish.ts --output "$GITHUB_WORKSPACE/.test-state/release/delivery"
+      - name: Public verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-verification
+          path: |
+            .test-state/release/delivery/public-verification.json
+            .test-state/release/delivery/public-image-smoke/result.json
+            .test-state/release/delivery/public-image-smoke/failure.json
+            .test-state/release/delivery/public-image-smoke/*/run-*/service.log

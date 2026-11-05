@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  release-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      TMPDIR: ${{ github.workspace }}/.test-state/release/tmp
+      DENO_DIR: ${{ github.workspace }}/.test-state/release/deno
+    steps:
+      - name: Verify VM and prepare disk scratch
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$RUNNER_OS" = Linux
+          test "$RUNNER_ARCH" = X64
+          timeout 10 hostname
+          mkdir -p "$TMPDIR" "$DENO_DIR"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pinned Deno
+        run: timeout 180 sh scripts/release/bootstrap.sh
+      - name: Build and qualify real archives and image
+        run: timeout 3300 deno run -A scripts/release/ci.ts --output "$GITHUB_WORKSPACE/.test-state/release/output"
+      - name: Preserve bounded proof and release delivery
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qualified-release
+          retention-days: 7
+          if-no-files-found: warn
+          path: |
+            .test-state/release/output/delivery/
+            .test-state/release/*.log
+            .test-state/release/output/*.log
+            .test-state/release/output/*/result.json
+            .test-state/release/output/*/failure.json
+            .test-state/release/output/*/run-*/service.log

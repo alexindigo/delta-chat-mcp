@@ -9,6 +9,9 @@ native compiler counter and ping transport are isolated integration fixtures.
 
 ## Deploy
 
+For Linux x86_64 binary downloads, the non-root amd64 container and the separate
+integration archive, see [binary and container installation](docs/release.md).
+
 Use the [Debian LXC deployment guide](docs/deploy.md) for the verified Deno
 installer, non-root systemd service, configuration, upgrades, whole-state
 backup/restore and data-preserving uninstall. The default is all-interface plain
